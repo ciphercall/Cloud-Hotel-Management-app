@@ -1,0 +1,159 @@
+﻿@{
+    ViewBag.Title = "Get_BillHeadInformation";
+}
+
+@using System.Data
+@using System.Data.SqlClient
+@using System.Security.Cryptography.X509Certificates
+@using AS_CLOUD_HOTEL.Models
+
+@{
+    ViewBag.Title = "Get_BillHeadInformation";
+    Layout = null;
+    if (HttpContext.Current.Session["LoggedUserType"] == null)
+    {
+        Response.Redirect(Url.Action("Index", "Login"));
+    }
+
+    var LoggedUserTp = HttpContext.Current.Session["LoggedUserType"].ToString();
+    var LoggedUserStatus = HttpContext.Current.Session["LoggedUserStatus"].ToString();
+    var LoggedCompanyStatus = HttpContext.Current.Session["LoggedCompanyStatus"].ToString();
+
+    if ((LoggedUserTp == "CompanyAdmin" || LoggedUserTp == "UserAdmin" || LoggedUserTp == "User") && LoggedUserStatus == "A" && LoggedCompanyStatus == "A")
+    {
+
+    }
+    else
+    {
+        Response.Redirect(Url.Action("Index", "Logout"));
+    }
+
+
+    CLoudHotelDbContext db = new CLoudHotelDbContext();
+    Int64 companyID = Convert.ToInt64(HttpContext.Current.Session["loggedCompID"].ToString());
+    Int64 loggedUserID = Convert.ToInt64(HttpContext.Current.Session["loggedUserID"].ToString());
+
+
+
+    var permission_Check = from m in db.AslRoleDbSet
+                           where m.COMPID == companyID && m.USERID == loggedUserID && m.CONTROLLERNAME == "HotelReport" && m.ACTIONNAME == "Get_BillHeadInformation"
+                           select m;
+    var Status = "";
+    foreach (var check in permission_Check)
+    {
+        Status = check.STATUS;
+    }
+
+    if (Status == "A")
+    {
+    }
+    else
+    {
+        Response.Redirect(Url.Action("Index", "Logout"));
+    }
+
+
+
+    string companyName = "", address = "", contactNo = "", address2 = "";
+    var re = from m in db.AslCompanyDbSet where m.COMPID == companyID select new { m.COMPNM, m.ADDRESS, m.CONTACTNO };
+    foreach (var n in re)
+    {
+        companyName = n.COMPNM;
+        address = n.ADDRESS;
+        contactNo = n.CONTACTNO;
+    }
+    var compNm = companyName;
+    var Address = address;
+    var contactno = contactNo;
+
+    TimeZoneInfo timeZoneInfo;
+    timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById("Central Asia Standard Time");
+    DateTime currentDateTime = TimeZoneInfo.ConvertTime(DateTime.Now, timeZoneInfo);
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <link href="~/Content/reportcss/style.css" rel="stylesheet" />
+
+</head>
+<body style=" background-color:#fafafa;">
+    <div style="width: 960px; margin: 0px auto; border: 1px solid #d3d3d3; border-radius: 5px; box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); background: none repeat scroll 0 0 white;">
+        <table id="mainTable" border="0" width="100%">
+            <thead>
+                <tr>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                </tr>
+                <tr style="background-color: #00689b">
+                    <td colspan="13">
+                        <h3 style="color: white;padding:4px">@compNm</h3>
+                        <p style="color:white;padding-left:4px">@Address<br /> @address2</p>
+                    </td>
+                    <td colspan="7" style="color: white;padding:8px" align="right">
+                        Powered By<br />Alchemy Software
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="13" align="left" style="padding: 4px; font-weight: bold">BILL HEAD INFORMATION</td>
+                    <td align="right" colspan="7" style="padding:8px">Print:@currentDateTime.ToString("dd-MM-yy hh:mm tt")</td>
+                </tr>
+                <tr style="background-color: #00689b; outline: thin solid">
+                    <td colspan="8" style="color: white; padding: 4px" align="center">Bill Head</td>
+                    <td colspan="4" style="color: white; padding: 4px" align="center">Rate</td>
+                    <td colspan="8" style="color: white; padding: 4px" align="center">Remarks</td>
+                </tr>
+            </thead>
+            <tbody>
+                @{
+
+                    var Data = (from m in db.HmlBillHpDbSet where m.COMPID == companyID select new { m.BILLNM, m.BILLRT, m.REMARKS }).ToList();
+
+                    string status = "";
+
+                    foreach (var get in Data)
+                    {
+                        <tr style="outline: thin solid #807575">
+                            <td align="left" colspan="8" style="padding-left: 4px">
+                                @get.BILLNM
+                            </td>
+                            <td align="right" colspan="4">
+                                @get.BILLRT
+                            </td>
+                            <td align="left" colspan="8">
+                                @get.REMARKS
+                            </td>
+                        </tr>
+                    }
+                }
+
+                <tr>
+                    <td><br /></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>
+
+

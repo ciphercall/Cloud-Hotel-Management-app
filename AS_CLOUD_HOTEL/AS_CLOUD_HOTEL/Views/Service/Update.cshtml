@@ -1,0 +1,575 @@
+﻿@using System.Data.SqlClient
+@using AS_CLOUD_HOTEL.Models
+@model  AS_CLOUD_HOTEL.Models.HML.HML_SERVICES
+@{
+    ViewBag.Title = "Update";
+    if (HttpContext.Current.Session["LoggedUserType"] == null)
+    {
+        Response.Redirect(Url.Action("Index", "Login"));
+    }
+
+    var LoggedUserTp = HttpContext.Current.Session["LoggedUserType"].ToString();
+    var LoggedUserStatus = HttpContext.Current.Session["LoggedUserStatus"].ToString();
+    var LoggedCompanyStatus = HttpContext.Current.Session["LoggedCompanyStatus"].ToString();
+
+    if ((LoggedUserTp == "CompanyAdmin" || LoggedUserTp == "UserAdmin" || LoggedUserTp == "User") && LoggedUserStatus == "A" && LoggedCompanyStatus == "A")
+    {
+
+    }
+    else
+    {
+        Response.Redirect(Url.Action("Index", "Logout"));
+    }
+
+    CLoudHotelDbContext db = new CLoudHotelDbContext();
+    Int64 compid = Convert.ToInt64(System.Web.HttpContext.Current.Session["loggedCompID"]);
+    Int64 loggedUserID = Convert.ToInt64(HttpContext.Current.Session["loggedUserID"].ToString());
+
+    List<SelectListItem> listof_GUESTTP = new List<SelectListItem>();
+    listof_GUESTTP.Add(new SelectListItem { Text = "IN-HOUSE", Value = "IN-HOUSE" });
+    listof_GUESTTP.Add(new SelectListItem { Text = "WALK-IN", Value = "WALK-IN" });
+
+    
+    List<SelectListItem> listof_BILLID = new List<SelectListItem>();
+    Int64 billid = Convert.ToInt64(compid + "01");
+    var find_BillID = (from m in db.HmlBillHpDbSet where m.COMPID == compid && m.BILLID!=billid select new { m.BILLID, m.BILLNM }).ToList();
+    foreach (var variable in find_BillID)
+    {
+        listof_BILLID.Add(new SelectListItem { Text = variable.BILLNM.ToString(), Value = variable.BILLID.ToString() });
+    }
+    
+    TimeZoneInfo timeZoneInfo;
+    timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById("Central Asia Standard Time");
+    DateTime currentDateTime = TimeZoneInfo.ConvertTime(DateTime.Now, timeZoneInfo);
+
+
+
+}
+
+<link href="~/Content/bootstrap_datepicker_css/datepicker.css" rel="stylesheet" />
+<link href="~/Content/bootstrap_datepicker_css/datepicker3.css" rel="stylesheet" />
+
+<script src="~/Scripts/bootstrap-datepicker.js"></script>
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    @Html.ValidationSummary(true)
+
+    @Html.HiddenFor(model => model.COMPID, new { @Value = compid, id = "txtCompanyid" })
+    @Html.HiddenFor(model => model.UPDUSERID, new { @Value = loggedUserID })
+    @Html.HiddenFor(model => model.ID, new { id = "txthidden_ID" })
+
+
+    <div id="contentHeaderBox">
+        @if (TempData["ServiceUpdateMessage"] != null)
+        {
+            <h1 style="padding-left:16px">
+                Service (CREATE)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <span style="color: #AB0303">@TempData["ServiceUpdateMessage"]</span>
+            </h1>
+        }
+        else
+        {
+            <h1 style="padding-left:16px">Service (UPDATE)</h1>
+        }
+        @if ((LoggedUserTp == "CompanyAdmin" || LoggedUserTp == "UserAdmin" || LoggedUserTp == "User") && LoggedUserStatus == "A")
+        {
+
+            var createStatus = "";
+            var updateStatus = "";
+            var deleteStatus = "";
+            var status = "";
+
+            var checkPermisiion = (from m in db.AslRoleDbSet
+                                   where m.COMPID == compid && m.USERID == loggedUserID && m.CONTROLLERNAME == "Service"
+                                   select m).ToList();
+
+
+            foreach (var x in checkPermisiion)
+            {
+                status = x.STATUS.ToString();
+                createStatus = x.INSERTR.ToString();
+                updateStatus = x.UPDATER.ToString();
+                deleteStatus = x.DELETER.ToString();
+            }
+
+
+
+            if (updateStatus == "I")
+            {
+                Response.Redirect("~/GraphView/Index");
+            }
+
+            <div class="btn-group pull-right" id="editOption">
+                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" data-hover="dropdown" aria-expanded="false">
+                    <i class="fa fa-cog"></i>
+                </button>
+                <ul class="dropdown-menu pull-right" style="" role="menu">
+                    @if (createStatus == 'A'.ToString() && updateStatus == 'A'.ToString() && deleteStatus == 'A'.ToString())
+                    {
+                        <li>
+                            <a href="@Url.Action("Create", "Service")"><i class="fa fa-plus"></i> Create</a>
+                        </li>
+                        <li>
+                            <a href="@Url.Action("Update", "Service")"><i class="fa fa-edit"></i> Update</a>
+                        </li>
+                        <li>
+                            <a href="@Url.Action("Delete", "Service")"><i class="fa fa-times"></i> Delete</a>
+                        </li>
+                    }
+                    else if (updateStatus == 'A'.ToString() && deleteStatus == 'A'.ToString())
+                    {
+                        <li>
+                            <a href="@Url.Action("Update", "Service")"><i class="fa fa-edit"></i> Update</a>
+                        </li>
+                        <li>
+                            <a href="@Url.Action("Delete", "Service")"><i class="fa fa-times"></i> Delete</a>
+                        </li>
+                    }
+                    else if (createStatus == 'A'.ToString() && updateStatus == 'A'.ToString())
+                    {
+                        <li>
+                            <a href="@Url.Action("Create", "Service")"><i class="fa fa-plus"></i> Create</a>
+                        </li>
+                        <li>
+                            <a href="@Url.Action("Update", "Service")"><i class="fa fa-edit"></i> Update</a>
+                        </li>
+                    }
+                    else if (createStatus == 'A'.ToString() && deleteStatus == 'A'.ToString())
+                    {
+                        <li>
+                            <a href="@Url.Action("Create", "Service")"><i class="fa fa-plus"></i> Create</a>
+                        </li>
+                        <li>
+                            <a href="@Url.Action("Delete", "Service")"><i class="fa fa-times"></i> Delete</a>
+                        </li>
+                    }
+                    else if (createStatus == 'A'.ToString())
+                    {
+                        <li>
+                            <a href="@Url.Action("Create", "Service")"><i class="fa fa-plus"></i> Create</a>
+                        </li>
+                    }
+                    else if (updateStatus == 'A'.ToString())
+                    {
+                        <li>
+                            <a href="@Url.Action("Update", "Service")"><i class="fa fa-edit"></i> Update</a>
+                        </li>
+                    }
+                    else if (deleteStatus == 'A'.ToString())
+                    {
+                        <li>
+                            <a href="@Url.Action("Delete", "Service")"><i class="fa fa-times"></i> Delete</a>
+                        </li>
+                    }
+                </ul>
+            </div>
+
+        }
+
+    </div>
+    <br />
+
+    <div class="col-md-12">
+        <div class="form-group">
+            <div class="row">
+                <div class="col-md-2">
+                    @Html.Label("name", "Month-Year", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-2">
+                    @Html.TextBoxFor(model => model.TRANSMY, htmlAttributes: new { id = "txt_TRANSMY", @class = "form-control input-sm", @Value = currentDateTime.ToString("MMM-yy"), @tabindex = "-1" })
+                </div>
+
+                <div class="col-md-2" style="text-align: right">
+                    @Html.Label("name", "Transaction NO", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-2">
+                    @Html.TextBoxFor(model => model.TRANSNO, htmlAttributes: new { id = "txt_TRANSNO", @class = "form-control input-sm", })
+                </div>
+
+                <div class="col-md-2">
+                    @Html.Label("name", "Payment Date", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-2">
+                    @Html.TextBoxFor(model => model.TRANSDT, htmlAttributes: new { id = "txt_TRANSDT", @class = "form-control input-sm", @readonly = "readonly", @tabindex = "-1", })
+                </div>
+            </div>
+            <br />
+            <div class="row">
+                <div class="col-md-2">
+                    @Html.Label("name", "Guest Type", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-4">
+                    @Html.DropDownListFor(model => model.GUESTTP, listof_GUESTTP, htmlAttributes: new { id = "txt_GUESTTP", @class = "form-control input-sm", @maxlength = "10" })
+                    @Html.ValidationMessageFor(model => model.GUESTTP, "", new { @class = "text-danger" })
+                </div>
+
+                <div class="col-md-2" style="text-align: right">
+                    @Html.Label("name", "Room No", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-4">
+                    @Html.TextBoxFor(model => model.ROOMNO, htmlAttributes: new { id = "txt_ROOMNO", @class = "form-control input-sm", @type = "number", @maxlength = "3" })
+                    @Html.ValidationMessageFor(model => model.ROOMNO, "", new { @class = "text-danger" })
+                </div>
+            </div>
+            <br />
+            <div class="row">
+                <div class="col-md-2">
+                    @Html.Label("name", "Bill ID", htmlAttributes: new {@class = "control-label"})
+                </div>
+                <div class="col-md-4">
+                    @Html.DropDownListFor(model => model.BILLID, listof_BILLID, "-Select-", htmlAttributes: new {id = "txt_BILLID", @class = "form-control input-sm",})
+                    @Html.ValidationMessageFor(model => model.BILLID, "", new {@class = "text-danger"})
+                </div>
+                <div class="col-md-2" style="text-align: right">
+                    @Html.Label("name", "Registration ID", htmlAttributes: new {@class = "control-label"})
+                </div>
+                <div class="col-md-4">
+                    @Html.TextBoxFor(model => model.REGNID, htmlAttributes: new {id = "txt_REGNID", @class = "form-control input-sm", @readonly = "readonly", @tabindex = "-1"})
+                    @Html.ValidationMessageFor(model => model.REGNID, "", new {@class = "text-danger"})
+                </div>
+            </div>
+            <br />
+            <div class="row">
+                <div class="col-md-2">
+                    @Html.Label("name", "Guest Name", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-10">
+                    <input id="txtGuestName" type="text" class = "form-control input-sm" readonly="readonly" />
+                </div>
+            </div>
+            <br />
+            <div class="row">
+                <div class="col-md-2">
+                    @Html.Label("name", "Quantity", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-4">
+                    @Html.TextBoxFor(model => model.QTY, htmlAttributes: new { @type = "number", id = "txt_QTY", @class = "form-control input-sm", @maxlength = "15", @Value = "0" })
+                    @Html.ValidationMessageFor(model => model.QTY, "", new { @class = "text-danger" })
+                </div>
+
+                <div class="col-md-2" style="text-align: right">
+                    @Html.Label("name", "Rate", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-4">
+                    @Html.TextBoxFor(model => model.RATE, htmlAttributes: new { id = "txt_RATE", @class = "form-control input-sm", @maxlength = "17", @type = "number", @Step = "any", @Value = "0" })
+                    @Html.ValidationMessageFor(model => model.RATE, "", new { @class = "text-danger" })
+                </div>
+            </div>
+            <br />
+            <div class="row">
+                <div class="col-md-2">
+                    @Html.Label("name", "Amount", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-4">
+                    @Html.TextBoxFor(model => model.AMOUNT, htmlAttributes: new { id = "txt_AMOUNT", @class = "form-control input-sm", @maxlength = "17", @type = "number", @Step = "any", @Value = "0" })
+                    @Html.ValidationMessageFor(model => model.AMOUNT, "", new { @class = "text-danger" })
+                </div>
+                <div class="col-md-2" style="text-align: right">
+                    @Html.Label("name", "Remarks", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-4">
+                    @Html.TextAreaFor(model => model.REMARKS, htmlAttributes: new { id = "txt_REMARKS", @class = "form-control input-sm", @maxlength = "100" })
+                    @Html.ValidationMessageFor(model => model.REMARKS, "", new { @class = "text-danger" })
+                </div>
+            </div>
+
+            @Html.HiddenFor(model => model.INSTIME, new { id = "HiddentxtInstime" })
+            @Html.HiddenFor(model => model.INSIPNO, new { id = "HiddentxtInsipno" })
+            @Html.HiddenFor(model => model.INSLTUDE, new { id = "HiddentxtInsltude" })
+            @Html.HiddenFor(model => model.INSUSERID, new { id = "HiddentxtInsuserId" })
+
+            @Html.TextBoxFor(model => model.UPDLTUDE, new { id = "latlon", style = "display: none;" })
+            <input id="lat" type="hidden" />
+            <input id="lon" type="hidden" />
+
+            <br />
+            <div class="row">
+                <div class="col-md-4"></div>
+                <div class="col-md-4">
+                    <input type="submit" class="btn btn-primary btn-block" value="Update" name="command" />
+                </div>
+                <div class="col-md-4"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="http://maps.google.com/maps/api/js?sensor=false"></script>
+
+    <script language="javascript" type="text/javascript">
+        $(function () {
+            navigator.geolocation.getCurrentPosition(showPosition);
+
+            function showPosition(position) {
+                var coordinates = position.coords;
+                $("#lat").val(coordinates.latitude);
+                $("#lon").val(coordinates.longitude);
+
+                $("#latlon").val(
+                    $("#lat").val() + "," + $("#lon").val()
+                );
+            }
+
+            //function positionError(position) {
+            //    alert("!!! Error: "+position.code);
+            //}
+        });
+    </script>
+
+
+    //datatime picker script
+    <script type="text/javascript">
+        $('.clockpicker').clockpicker();
+    </script>
+
+
+    <script type="text/javascript">
+        $(document).ready(function () {
+
+            $("#txt_TRANSMY").datepicker({
+                changeMonth: true,
+                changeYear: true,
+                showButtonPanel: true,
+                dateFormat: "M-y",
+
+            }).focus(function () {
+                var thisCalendar = $(this);
+                $('.ui-datepicker-calendar').detach();
+                $('.ui-datepicker-close').click(function () {
+                    var month = $("#ui-datepicker-div .ui-datepicker-month :selected").val();
+                    var year = $("#ui-datepicker-div .ui-datepicker-year :selected").val();
+                    thisCalendar.datepicker('setDate', new Date(year, month, 1));
+                    $("#txt_TRANSNO").val("");
+                    $("#txt_TRANSDT").val("");
+                    $("#txt_GUESTTP").val("IN-HOUSE");
+                    $("#txt_ROOMNO").val("");
+                    $("#txt_REGNID").val("");
+                    $("#txtGuestName").val("");
+                    $("#txt_BILLID").val("0"); 
+                    $("#txt_QTY").val("0"); 
+                    $("#txt_RATE").val("0");
+                    $("#txt_AMOUNT").val("0");
+                    $("#txt_REMARKS").val("");
+                    document.getElementById("txt_TRANSNO").focus();
+                });
+            });
+
+
+
+            $('#txt_TRANSNO').autocomplete({
+
+                source: function (request, response) {
+                    var companyID = $('#txtCompanyid').val();
+                    var transMonthYear = $("#txt_TRANSMY").val();
+                    $.ajax({
+                        url: '/Service/TagSearch_TransNO',
+                        type: 'GET',
+                        cache: false,
+                        data: { character: request.term, monthYear: transMonthYear, compid: companyID },
+                        dataType: 'json',
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return {
+                                    label: item,
+                                    value: item,
+                                };
+                            }));
+                        }
+                    });
+                },
+                change: $('#txt_TRANSNO').keyup(_.debounce(txtOneChanged, 500)),
+                select: function (event, ui) {
+                    $("#txt_TRANSNO").val(ui.item.label);
+                    txtOneChanged();
+                },
+            });
+
+
+            function txtOneChanged() {
+                var changedText = $("#txt_TRANSNO").val();
+                var companyID = $('#txtCompanyid').val();
+                var transMonthYear = $("#txt_TRANSMY").val();
+
+                var txtBox = document.getElementById('txt_TRANSNO');
+                var txt_TRANSMY = document.getElementById('txt_TRANSMY');
+
+                var txt_ID = document.getElementById('txthidden_ID');
+                var txt_TRANSDT = document.getElementById('txt_TRANSDT');
+                var txt_GUESTTP = document.getElementById('txt_GUESTTP');
+                var txt_ROOMNO = document.getElementById('txt_ROOMNO');
+                var txt_REGNID = document.getElementById('txt_REGNID');
+                var txtGuestName = document.getElementById('txtGuestName');
+                var txt_BILLID = document.getElementById('txt_BILLID');
+                var txt_QTY = document.getElementById('txt_QTY'); 
+                var txt_RATE = document.getElementById('txt_RATE');
+                var txt_AMOUNT = document.getElementById('txt_AMOUNT');
+                var txt_REMARKS = document.getElementById('txt_REMARKS');
+
+                var txtInseruserId = document.getElementById('HiddentxtInsuserId');
+                var txtInsertime = document.getElementById('HiddentxtInstime');
+                var txtinslutude = document.getElementById('HiddentxtInsltude');
+                var txtinseripno = document.getElementById('HiddentxtInsipno');
+                $.getJSON(
+                    '/Service/GetData', { "ChangedText": changedText, "TransMonthYear": transMonthYear, "CompanyID": companyID },
+                    function (result) {
+                        txtBox.value = result.TRANSNO;
+                        //txt_TRANSMY.value = result.TRANSMY;
+
+                        txt_ID.value = result.ID;
+                        txt_TRANSDT.value = result.TRANSDT;
+                        txt_GUESTTP.value = result.GUESTTP;
+                        txt_ROOMNO.value = result.ROOMNO;
+                        txt_REGNID.value = result.REGNID;
+                        txtGuestName.value = result.GUESTNAME;
+                        txt_BILLID.value = result.BILLID;
+                        txt_QTY.value = result.QTY;
+                        txt_RATE.value = result.RATE;
+                        txt_AMOUNT.value = result.AMOUNT;
+                        txt_REMARKS.value = result.REMARKS;
+
+                        txtInseruserId.value = result.INSUSERID;
+                        txtInsertime.value = result.INSTIME;
+                        txtinslutude.value = result.INSLTUDE;
+                        txtinseripno.value = result.INSIPNO;
+
+
+                    });
+
+                $("#txthidden_ID").val("");
+                $("#txt_TRANSDT").val("");
+                $("#txt_GUESTTP").val("IN-HOUSE");
+                $("#txt_ROOMNO").val("");
+                $("#txt_REGNID").val("CASH");
+                $("#txt_BILLID").val("0");
+                $("#txt_QTY").val("0");
+                $("#txt_RATE").val("0");
+                $("#txt_AMOUNT").val("0");
+                $("#txt_REMARKS").val("");
+
+            }
+
+
+            $("#txt_BILLID").change(function () {
+
+                var changedText = $("#txt_BILLID").val();
+                var compid = $('#txtCompanyid').val();
+
+                var txtBox = document.getElementById('txt_RATE');
+
+                $.getJSON(
+                    '/Service/Get_RATE', { "ChangedText": changedText, "Compid": compid },
+                    function (result) {
+                        txtBox.value = result.BILLRT;
+                    });
+
+            });
+
+
+
+            $("#txt_QTY").change(function () {
+
+                var myBox1 = document.getElementById('txt_QTY').value;
+                var myBox2 = document.getElementById('txt_RATE').value;
+                var txtAmt = document.getElementById('txt_AMOUNT');
+
+                var tottxtAmt = (myBox1 * myBox2);
+                txtAmt.value = tottxtAmt;
+
+                document.getElementById("txt_Remarks").focus();
+            });
+
+
+
+
+            $("#txt_RATE").change(function () {
+
+                var myBox1 = document.getElementById('txt_QTY').value;
+                var myBox2 = document.getElementById('txt_RATE').value;
+                var txtAmt = document.getElementById('txt_AMOUNT');
+
+                var tottxtAmt = (myBox1 * myBox2);
+                txtAmt.value = tottxtAmt;
+
+                document.getElementById("txt_Remarks").focus();
+            });
+
+
+            $('#txt_ROOMNO').autocomplete({
+
+                source: function (request, response) {
+                    var compID = $('#txtCompanyid').val();
+                    var transDate = $('#txt_TRANSDT').val();
+                    $.ajax({
+                        url: '/Service/TagSearch_roomID',
+                        type: 'GET',
+                        cache: false,
+                        data: { character: request.term, compid: compID, transdate: transDate },
+                        dataType: 'json',
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return {
+                                    label: item,
+                                    value: item,
+                                };
+                            }));
+                        }
+                    });
+                },
+                change: $('#txt_ROOMNO').keyup(_.debounce(txtOneChangedRoomNo, 500)),
+                select: function (event, ui) {
+                    $("#txt_ROOMNO").val(ui.item.label);
+                    txtOneChangedRoomNo();
+                },
+            });
+
+
+            function txtOneChangedRoomNo() {
+                var changedText = $("#txt_ROOMNO").val();
+                var transDate = $("#txt_TRANSDT").val();
+                var compid = $('#txtCompanyid').val();
+
+                var txtBox = document.getElementById('txt_ROOMNO');
+                var txt_REGNID = document.getElementById('txt_REGNID');
+                var txtGuestName = document.getElementById('txtGuestName');
+                $.getJSON(
+                    '/Service/keyword_roomID', { "ChangedText": changedText, "Compid": compid, "TransDate": transDate },
+                    function (result) {
+                        //txtBox.value = result.ROOMNO;
+                        txt_REGNID.value = result.REGNID;
+                        txtGuestName.value = result.GUESTNAME;
+                    });
+                $("#txt_REGNID").val("");
+                $("#txtGuestName").val("");
+            }
+        });
+    </script>
+
+    <style type="text/css">
+        .ui-autocomplete {
+            position: absolute;
+            cursor: default;
+            background: #f0ffff;
+            max-height: 200px;
+            overflow-y: auto;
+            /* prevent horizontal scrollbar */
+            overflow-x: hidden;
+            /* add padding to account for vertical scrollbar */
+            padding-right: 20px;
+        }
+    </style>
+}
+
+<link href="~/Content/themes/base/jquery-ui.css" rel="stylesheet" />
+<script src="~/Scripts/jquery-1.9.1.min.js"></script>
+<script src="~/Scripts/jquery-ui-1.10.4.min.js"></script>
+<script src="~/Scripts/Underscore.js"></script>
+@*<script src="~/Scripts/jquery.js"></script>*@
+
+
+
+<script src="~/Scripts/jquery.validate.js"></script>
+<script src="~/Scripts/jquery.validate.unobtrusive.js"></script>
+

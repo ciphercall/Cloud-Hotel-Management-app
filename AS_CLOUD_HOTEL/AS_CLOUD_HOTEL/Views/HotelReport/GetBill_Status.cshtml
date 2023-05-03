@@ -1,0 +1,250 @@
+﻿@using System.Data
+@using System.Data.SqlClient
+@using System.Data.SqlTypes
+@using AS_CLOUD_HOTEL.Models
+@model AS_CLOUD_HOTEL.Models.PageModel
+
+@{
+    ViewBag.Title = "GetBill_Status";
+    Layout = null;
+
+    if (HttpContext.Current.Session["LoggedUserType"] == null)
+    {
+        Response.Redirect(Url.Action("Index", "Login"));
+    }
+
+    var LoggedUserTp = HttpContext.Current.Session["LoggedUserType"].ToString();
+    var LoggedUserStatus = HttpContext.Current.Session["LoggedUserStatus"].ToString();
+    var LoggedCompanyStatus = HttpContext.Current.Session["LoggedCompanyStatus"].ToString();
+
+    if ((LoggedUserTp == "CompanyAdmin" || LoggedUserTp == "UserAdmin" || LoggedUserTp == "User") && LoggedUserStatus == "A" && LoggedCompanyStatus == "A")
+    {
+
+    }
+    else
+    {
+        Response.Redirect(Url.Action("Index", "Logout"));
+    }
+
+    CLoudHotelDbContext db = new CLoudHotelDbContext();
+    var companyId = Convert.ToInt64(Model.StkTrans.COMPID);
+
+    string companyName = "", address = "", contactNo = "", address2 = "";
+    var re = from m in db.AslCompanyDbSet where m.COMPID == companyId select new { m.COMPNM, m.ADDRESS, m.CONTACTNO, m.ADDRESS2 };
+    foreach (var n in re)
+    {
+        companyName = n.COMPNM;
+        address = n.ADDRESS;
+        contactNo = n.CONTACTNO;
+        address2 = n.ADDRESS2;
+    }
+    var compNm = companyName;
+    var Address = address;
+    var contactno = contactNo;
+
+    DateTime fdate = Convert.ToDateTime(Model.Report_FromDate);
+    string ddt = fdate.ToString("dd-MMM-yyyy");
+    var fromdate = ddt;
+
+    DateTime tDate = Convert.ToDateTime(Model.Report_ToDate);
+    string tdd = tDate.ToString("dd-MMM-yyyy");
+    var todate = tdd;
+
+    TimeZoneInfo timeZoneInfo;
+    timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById("Central Asia Standard Time");
+    DateTime currentDateTime = TimeZoneInfo.ConvertTime(DateTime.Now, timeZoneInfo);
+}
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <link href="~/Content/reportcss/style.css" rel="stylesheet" />
+
+</head>
+<body style=" background-color:#fafafa;">
+    <div style="width: 100%; margin: 0px auto; border: 1px solid #d3d3d3; border-radius: 5px; box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); background: none repeat scroll 0 0 white;">
+        <table id="mainTable" border="0" width="100%">
+            <thead>
+                <tr>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                </tr>
+                <tr style="background-color: #00689b">
+                    <td colspan="13">
+                        <h3 style="color: white;padding:4px">@compNm</h3>
+                        <p style="color:white;padding-left:4px">@Address<br /> @address2</p>
+                    </td>
+
+                    <td colspan="7" style="color: white;padding:8px" align="right">
+                        Powered By<br />Alchemy Software
+                    </td>
+
+                </tr>
+                <tr>
+                    <td colspan="13" align="left" style="padding: 4px; font-weight: bold">BILL STATUS</td>
+                    <td align="right" colspan="7" style="padding:8px">Print:@currentDateTime.ToString("dd-MM-yy hh:mm tt")</td>
+                </tr>
+                <tr style="outline: thin solid">
+                    <td colspan="10" style="padding:4px;font-weight:bold">From Date : <span style="font-weight: bold">@fromdate</span></td>
+                    <td colspan="10" style="font-weight: bold"> To Date : <span style="font-weight:bold">@todate</span></td>
+                </tr>
+                <tr style="background-color: #00689b; outline: thin solid">
+                    <td colspan="2" style="color: white; padding: 4px" align="center">Date</td>
+                    <td colspan="1" style="color: white; padding: 4px" align="center">Room No</td>
+                    <td colspan="1" style="color: white; padding: 4px" align="center">Reg. ID</td>
+                    <td colspan="2" style="color: white; padding: 4px" align="center">Total Amount</td>
+                    <td colspan="1" style="color: white; padding: 4px" align="center">Service</td>
+                    <td colspan="1" style="color: white; padding: 4px" align="center">Vat</td>
+                    <td colspan="2" style="color: white; padding: 4px" align="center">Advance</td>
+                    <td colspan="2" style="color: white; padding: 4px" align="center">Discount</td>
+                    <td colspan="2" style="color: white; padding: 4px" align="center">Net</td>
+                    <td colspan="2" style="color: white; padding: 4px" align="center">Paid</td>
+                    <td colspan="2" style="color: white; padding: 4px" align="center">Balance</td>
+                    <td colspan="1" style="color: white; padding: 4px" align="center">Receve</td>
+                    <td colspan="1" style="color: white; padding: 4px" align="center">Due</td>
+                </tr>
+            </thead>
+            <tbody>
+                @{
+
+
+                    System.Data.SqlClient.SqlConnection conn1 = new System.Data.SqlClient.SqlConnection(System.Configuration.ConfigurationManager.ConnectionStrings["CLoudHotelDbContext"].ToString());
+                    string query1 = string.Format(
+                        @"SELECT A.TRANSDT, ROOMNO, A.REGNID, ISNULL(TOTAMT,0) TOTAMT,  ISNULL(SCHARGE,0) SCHARGE, ISNULL(VATAMT,0) VATAMT, 
+ISNULL(ADVAMT,0) ADVAMT, ISNULL(DISCOUNT,0) DISCOUNT, ISNULL(NETAMT,0) NETAMT, ISNULL(PAIDAMT,0) PAIDAMT, ISNULL(BALAMT,0) BALAMT, ISNULL(AMOUNT,0) RCVAMT, ISNULL(BALAMT,0)-ISNULL(AMOUNT,0) DUEAMT
+FROM HML_BILL A LEFT OUTER JOIN HML_REGNPAY B ON A.COMPID = B.COMPID AND A.REGNID = B.REGNID AND TRFOR = 'BILL'
+WHERE A.COMPID = '{0}' AND A.TRANSDT BETWEEN '{1}' AND '{2}'
+ORDER BY A.TRANSDT, ROOMNO, A.REGNID",
+                        companyId, fdate, todate);
+                    System.Data.SqlClient.SqlCommand cmd1 = new System.Data.SqlClient.SqlCommand(query1, conn1);
+                    conn1.Open();
+                    SqlDataAdapter da1 = new SqlDataAdapter(cmd1);
+                    DataTable ds1 = new DataTable();
+                    da1.Fill(ds1);
+
+                    string TRANSDT = "", ROOMNO = "", REGNID = "";
+                    decimal TOTAMT = 0, SCHARGE = 0, VATAMT = 0, ADVAMT = 0, DISCOUNT = 0, NETAMT = 0, PAIDAMT = 0, BALAMT = 0, RCVAMT = 0, DUEAMT = 0;
+
+                    foreach (DataRow row in ds1.Rows)
+                    {
+                        TRANSDT = row["TRANSDT"].ToString();
+                        DateTime date2 = Convert.ToDateTime(TRANSDT);
+                        TRANSDT = date2.ToString("dd-MMM-yyyy");
+
+                        ROOMNO = Convert.ToString(row["ROOMNO"]);
+                        REGNID = row["REGNID"].ToString();
+                        TOTAMT = Convert.ToDecimal(row["TOTAMT"]);
+                        SCHARGE = Convert.ToDecimal(row["SCHARGE"]);
+                        VATAMT = Convert.ToDecimal(row["VATAMT"]);
+                        ADVAMT = Convert.ToDecimal(row["ADVAMT"]);
+                        DISCOUNT = Convert.ToDecimal(row["DISCOUNT"]);
+                        NETAMT = Convert.ToDecimal(row["NETAMT"]);
+                        PAIDAMT = Convert.ToDecimal(row["PAIDAMT"]);
+                        BALAMT = Convert.ToDecimal(row["BALAMT"]);
+                        RCVAMT = Convert.ToDecimal(row["RCVAMT"]);
+                        DUEAMT = Convert.ToDecimal(row["DUEAMT"]);
+
+                        <tr style="outline: thin solid">
+                            <td align="center" colspan="2" style="padding-left: 4px">
+                                @TRANSDT
+                            </td>
+                            <td align="center" colspan="1">
+                                @ROOMNO
+                            </td>
+                            <td align="center" colspan="1">
+                                @REGNID
+                            </td>
+                            <td align="right" colspan="2">
+                                @TOTAMT
+                            </td>
+                            <td align="right" colspan="1">
+                                @SCHARGE
+                            </td>
+                            <td align="right" colspan="1">
+                                @VATAMT
+                            </td>
+                            <td align="right" colspan="2">
+                                @ADVAMT
+                            </td>
+                            <td align="right" colspan="2">
+                                @DISCOUNT
+                            </td>
+                            <td align="right" colspan="2">
+                                @NETAMT
+                            </td>
+                            <td align="right" colspan="2">
+                                @PAIDAMT
+                            </td>
+                            <td align="right" colspan="2">
+                                @BALAMT
+                            </td>
+                            <td align="right" colspan="1">
+                                @RCVAMT
+                            </td>
+                            <td align="right" colspan="1">
+                                @DUEAMT
+                            </td>
+                        </tr>
+
+
+                    }
+                
+                conn1.Close();
+                }
+                @*<tr>
+                        <td colspan="2"></td>
+                        <td colspan="2"></td>
+                        <td colspan="1"></td>
+                        <td align="right" colspan="3" style="font-weight:bold">
+                            Total:
+                        </td>
+                        <td align="right" colspan="2" style="font-weight:bold">
+                            @total_BQTY
+                        </td>
+                        <td align="right" colspan="2" style="font-weight:bold">
+                            @total_SQTY
+                        </td>
+                        <td align="right" colspan="2" style="font-weight:bold">
+                            @total_INQTY
+                        </td>
+                        <td align="right" colspan="2" style="font-weight:bold">
+                            @total_OUTQTY
+                        </td>
+                        <td align="right" colspan="2" style="font-weight:bold">
+                            @{
+                                total_Balance = Opening + total_BQTY - total_SQTY + total_INQTY - total_OUTQTY;
+                            }
+                            @total_Balance
+                        </td>
+                    </tr>*@
+
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>
+
+
+
+

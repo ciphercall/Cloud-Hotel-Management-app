@@ -1,0 +1,231 @@
+﻿@using AS_CLOUD_HOTEL.DataAccess
+@using AS_CLOUD_HOTEL.Models
+@model AS_CLOUD_HOTEL.Models.HML.HML_REGNPAY
+
+
+@{
+    ViewBag.Title = "Get_RegistrationPaymnetReports_BigSize";
+    Layout = null;
+
+    if (HttpContext.Current.Session["LoggedUserType"] == null)
+    {
+        Response.Redirect(Url.Action("Index", "Login"));
+    }
+
+    var LoggedUserTp = HttpContext.Current.Session["LoggedUserType"].ToString();
+    var LoggedUserStatus = HttpContext.Current.Session["LoggedUserStatus"].ToString();
+    var LoggedCompanyStatus = HttpContext.Current.Session["LoggedCompanyStatus"].ToString();
+
+    if ((LoggedUserTp == "CompanyAdmin" || LoggedUserTp == "UserAdmin" || LoggedUserTp == "User") && LoggedUserStatus == "A" && LoggedCompanyStatus == "A")
+    {
+
+    }
+    else
+    {
+        Response.Redirect(Url.Action("Index", "Logout"));
+    }
+
+    CLoudHotelDbContext db = new CLoudHotelDbContext();
+
+    var companyId = Convert.ToInt64(Model.COMPID);
+    var MonthYear = Convert.ToString(Model.TRANSMY);
+    var MemoNo = Convert.ToInt64(Model.TRANSNO);
+
+
+    string companyName = "", address = "", address2 = "", contactNo = "";
+    var SelectUserName = from m in db.AslCompanyDbSet where m.COMPID == companyId select new { m.COMPNM, m.ADDRESS, m.CONTACTNO };
+    foreach (var n in SelectUserName)
+    {
+        companyName = n.COMPNM;
+        address = n.ADDRESS;
+        contactNo = n.CONTACTNO;
+    }
+    var compNm = companyName;
+    var Address = address;
+    var contactno = contactNo;
+
+
+    String transDate = "", transactionFor = "", PaymentMode = "", CurrencyType = "", Remarks = "", registrationDate = "", roomNo = "";
+    Decimal Amount = 0;
+    Int64 registrationId = 0;
+    var parentDatafound = from n in db.HmlRegistrationPaymentDbSet
+                          where n.COMPID == companyId && n.TRANSMY == MonthYear && n.TRANSNO == MemoNo
+                          select new { n.TRANSDT, n.REGNID, n.TRFOR, n.TRMODE, n.CCYTP, n.AMOUNT, n.REMARKS };
+
+    foreach (var a in parentDatafound)
+    {
+        DateTime date = Convert.ToDateTime(a.TRANSDT);
+        transDate = date.ToString("dd-MMM-yyyy");
+        registrationId = Convert.ToInt64(a.REGNID);
+        transactionFor = Convert.ToString(a.TRFOR);
+        PaymentMode = Convert.ToString(a.TRMODE);
+        CurrencyType = Convert.ToString(a.CCYTP);
+        Amount = Convert.ToDecimal(a.AMOUNT);
+        Remarks = Convert.ToString(a.REMARKS);
+    }
+
+
+    TimeZoneInfo timeZoneInfo;
+    timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById("Central Asia Standard Time");
+    DateTime currentDateTime = TimeZoneInfo.ConvertTime(DateTime.Now, timeZoneInfo);
+
+
+    var findRegistrationDate = (from m in db.HmlRegistrationDbSet where m.COMPID == companyId && m.REGNID == registrationId select new { m.REGNDT, m.ROOMNO }).ToList();
+    foreach (var a in findRegistrationDate)
+    {
+        DateTime date_reg = Convert.ToDateTime(a.REGNDT);
+        registrationDate = date_reg.ToString("dd-MMM-yyyy");
+
+        roomNo = Convert.ToString(a.ROOMNO);
+    }
+
+    string guestName = "";
+    var findGuestName = (from HML_REGN in db.HmlRegistrationDbSet
+                         join HML_GUESTS in db.HmlRegistrationGuestsDbSet on HML_REGN.COMPID equals HML_GUESTS.COMPID
+                         where HML_REGN.COMPID == companyId && HML_REGN.REGNID == registrationId && HML_GUESTS.REGNID == HML_REGN.REGNID
+                         select new { HML_GUESTS.GUESTNM }).ToList();
+    foreach (var x in findGuestName)
+    {
+        guestName = x.GUESTNM;
+        break;
+    }
+}
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <link href="~/Content/reportcss/style.css" rel="stylesheet" />
+
+</head>
+<body style=" background-color:#fafafa;">
+    <div style="width: 960px; margin: 0px auto; border: 1px solid #d3d3d3; border-radius: 5px; box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); background: none repeat scroll 0 0 white;">
+        <table id="mainTable" border="0" width="100%">
+            <thead>
+                <tr>
+                    <td width="10%"></td>
+                    <td width="10%"></td>
+                    <td width="10%"></td>
+                    <td width="10%"></td>
+                    <td width="10%"></td>
+                    <td width="10%"></td>
+                    <td width="10%"></td>
+                    <td width="10%"></td>
+                    <td width="10%"></td>
+                    <td width="10%"></td>
+                </tr>
+
+                <tr style="background-color: #00689b">
+                    @*@if (companyId == 101)
+                        {
+                            <td colspan="1" style="background-color: white;">
+                                <img src="~/Content/Company-Logo/MILLENNIUM-TEA-TRADERS.jpg" width="100" height="70" alt="" />
+                            </td>
+                            <td colspan="7">
+                                <h3 style="color: white;padding:4px">@compNm</h3>
+                                <p style="color:white;padding-left:4px">@Address<br /> @address2</p>
+                            </td>
+                            <td colspan="2" style="color: white;padding:8px" align="right">
+                                Powered By<br />Alchemy Software
+                            </td>
+                        }*@
+
+                    <td colspan="7">
+                        <h3 style="color: white;padding:4px">@compNm</h3>
+                        <p style="color:white;padding-left:4px">@Address<br />@address2</p>
+                    </td>
+                    <td colspan="3" style="color: white;padding:8px" align="right">
+                        Powered By<br />Alchemy Software
+                    </td>
+
+                </tr>
+
+                <tr>
+                    <td colspan="7" align="left" style="padding: 4px; font-weight: bold">Money Receipt</td>
+                    <td align="right" colspan="3" style="padding:8px">Print:@currentDateTime.ToString("dd-MM-yy hh:mm tt")</td>
+                </tr>
+
+                <tr style="outline: thin solid">
+                    <td colspan="2" align="left">Date</td>
+                    <td colspan="3" style="font-weight: bold">: @transDate</td>
+                    <td colspan="3" align="right" style="padding-right: 20px">Memo No </td>
+                    <td colspan="2" align="left" style="font-weight: bold">: @MemoNo</td>
+                </tr>
+                <tr>
+                    <td colspan="2" align="left">Registration ID:</td>
+                    <td colspan="3">: @registrationId </td>
+                    <td colspan="3" align="right" style="padding-right: 20px">Registration Date </td>
+                    <td colspan="2" align="left" style="padding-left: 0px;">: @registrationDate</td>
+                </tr>
+                <tr>
+                    <td colspan="2" align="left">Room No</td>
+                    <td colspan="3" >: @roomNo </td>
+                    <td colspan="3" align="right" style="padding-right: 20px">Guest Name </td>
+                    <td colspan="2" align="left" style="padding-left: 0px;">: @guestName</td>
+                </tr>
+                <tr>
+                    <td colspan="2" align="left">Transaction For</td>
+                    <td colspan="3" >: @transactionFor </td>
+                    <td colspan="3" align="right" style="padding-right: 20px">Payment Mode </td>
+                    <td colspan="2" align="left" style="padding-left: 0px;">: @PaymentMode</td>
+                </tr>
+                <tr>
+                    <td colspan="2" align="left">Amount</td>
+                    <td colspan="3" >: @Amount </td>
+                    <td colspan="3" align="right" style="padding-right: 20px">Currency Type </td>
+                    <td colspan="2" align="left" style="padding-left: 0px;">: @CurrencyType</td>
+                </tr>
+                <tr>
+                    <td colspan="2" align="left">Remarks</td>
+                    <td colspan="8">: @Remarks </td>
+                </tr>
+
+            </thead>
+
+            <tbody>
+                @{
+                    string amount = "", InWords = "";
+                    amount = Convert.ToString(Amount);
+                    InWords = SpellAmount.MoneyConvFn(amount);
+                }
+                <tr>
+                    <td><br /></td>
+                </tr>
+                <tr style="outline: thin solid">
+                    <td colspan="10" align="left" style="padding-left:8px">In Words : @InWords</td>
+                </tr>
+                <tr>
+                    <td align="center" colspan="10"><strong>THANK YOU</strong></td>
+                </tr>
+                <tr>
+                    <td><br /></td>
+                </tr>
+                <tr>
+                    <td><br /></td>
+                </tr>
+                <tr>
+                    <td colspan="2" align="left" style="padding-left:8px"><hr></td>
+                    <td colspan="2"></td>
+                    <td colspan="2" align="left" style="padding-left:8px"><hr></td>
+                    <td colspan="2"></td>
+                    <td colspan="2" align="left" style="padding-left:8px"><hr></td>
+                </tr>
+                <tr>
+                    <td colspan="2" align="center" style="padding-left:8px">Receiver's Signature</td>
+                    <td colspan="2"></td>
+                    <td colspan="2" align="center" style="padding-left:8px">Prepared By</td>
+                    <td colspan="2"></td>
+                    <td colspan="2" align="center" style="padding-left:8px">Authorized By</td>
+                </tr>
+
+
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>

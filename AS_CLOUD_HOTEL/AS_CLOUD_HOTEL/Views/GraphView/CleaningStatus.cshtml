@@ -1,0 +1,127 @@
+﻿@using AS_CLOUD_HOTEL.Models
+@{
+    ViewBag.Title = "CleaningStatus";
+
+    //var userCookie = Request.Cookies["user"];
+    //if (userCookie == null)
+    //{
+    //    Response.Redirect(Url.Action("Index", "Login"));
+    //}
+
+    if (System.Web.HttpContext.Current.Session["loggedCompID"] == null)
+    {
+        Response.Redirect(Url.Action("Index", "Login"));
+    }
+
+
+    CLoudHotelDbContext db = new CLoudHotelDbContext();
+    Int64 companyID = Convert.ToInt64(HttpContext.Current.Session["loggedCompID"].ToString());
+}
+
+
+@using (Html.BeginForm())
+{
+    var findCleaningStatus = (from m in db.HmlRoomStatusDbSet where m.COMPID == companyID select m).ToList();
+
+    if (System.Web.HttpContext.Current.Session["LoggedUserType"] != null && System.Web.HttpContext.Current.Session["LoggedUserStatus"].ToString() == "A" && (System.Web.HttpContext.Current.Session["LoggedUserType"].ToString() == "CompanyAdmin" || System.Web.HttpContext.Current.Session["LoggedUserType"].ToString() == "UserAdmin" || System.Web.HttpContext.Current.Session["LoggedUserType"].ToString() == "User"))
+    {
+        <div id="contentHeaderBox" style="border-bottom: none;height: auto">
+            <ul class="nav nav-tabs" role="tablist">
+                <li>@Html.ActionLink("Room Status", "Index", "GraphView", new { style = "color: black;" })</li>
+                <li>@Html.ActionLink("Booking Status", "BookingStatus", "GraphView", new { style = "color: black" })</li>
+                <li class="active">@Html.ActionLink("Cleaning Status", "CleaningStatus", "GraphView", new { style = "color: black;background-color: gainsboro;" })</li>
+                <li>@Html.ActionLink("Today", "Today", "GraphView", new { style = "color: black" })</li>
+                @if (System.Web.HttpContext.Current.Session["LoggedUserType"].ToString() != "User")
+                {
+
+                    <li>@Html.ActionLink("Yesterday", "LastOneDay", "GraphView", new { style = "color: black" })</li>
+                    <li>@Html.ActionLink("Last 7 Day", "Last7Day", "GraphView", new { style = "color: black" })</li>
+                    <li>@Html.ActionLink("Last 1 Month", "LastOneMonth", "GraphView", new { style = "color: black" })</li>
+                    <li>@Html.ActionLink("Last 1 Year", "LastOneYear", "GraphView", new { style = "color: black" })</li>
+                }
+
+            </ul>
+        </div>
+        <br>
+        <div class="panel panel-primary">
+            <!-- Default panel contents -->
+            <div class="panel-heading">CLEANING STATUS </div>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <tr>
+                        <th>
+                            Room No
+                        </th>
+                        <th>
+                            Room-Status
+                        </th>
+                        <th>
+                            Cleaning-Status
+                        </th>
+                        <th>
+                            Last Cleaning Date
+                        </th>
+                        <th>
+                            Next Cleaning Date
+                        </th>
+                        <th>
+                            Remarks
+                        </th>
+                    </tr>
+                    
+                    @foreach (var item in findCleaningStatus)
+                    {
+                        String clastdt = "", cnextdt = "",cleaningStatus="";
+
+                        clastdt = item.CLASTDT.ToString();
+                        DateTime date1 = Convert.ToDateTime(clastdt);
+                        clastdt = date1.ToString("dd-MMM-yyyy hh:mm tt");
+
+                        cnextdt = item.CNEXTDT.ToString();
+                        DateTime date2 = Convert.ToDateTime(cnextdt);
+                        cnextdt = date1.ToString("dd-MMM-yyyy hh:mm tt");
+
+                        if (item.CSTATS == "CLEANIP")
+                        {
+                            cleaningStatus = "Clean In Prongress";
+                        }
+                        else // if (item.CSTATS == "CLEANED")
+                        {
+                            cleaningStatus = "Cleaned";
+                        }
+
+
+
+                        <tr>
+                            <td>
+                                @Html.DisplayFor(modelItem => item.ROOMNO)
+                            </td>
+                            <td>
+                                @Html.DisplayFor(modelItem => item.RSTATS)
+                            </td>
+                            <td>
+                                @cleaningStatus
+                            </td>
+                            <td>
+                                @clastdt
+                            </td>
+                            <td>
+                                @cnextdt
+                            </td>
+                            <td>
+                                @Html.DisplayFor(modelItem => item.REMARKS)
+                            </td>
+                        </tr>
+                    }
+
+                </table>
+            </div>
+        </div>
+
+    }
+
+}
+
+
+
+

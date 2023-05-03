@@ -1,0 +1,193 @@
+﻿@using System.Data
+@using System.Data.SqlClient
+@using AS_CLOUD_HOTEL.Models
+
+@{
+    ViewBag.Title = "Index";
+    //var userCookie = Request.Cookies["user"];
+    //if (userCookie == null)
+    //{
+    //    Response.Redirect(Url.Action("Index", "Login"));
+    //}
+
+    if (System.Web.HttpContext.Current.Session["loggedCompID"] == null)
+    {
+        Response.Redirect(Url.Action("Index", "Login"));
+    }
+
+    CLoudHotelDbContext db = new CLoudHotelDbContext();
+    Int64 companyID = Convert.ToInt64(HttpContext.Current.Session["loggedCompID"].ToString());
+
+    TimeZoneInfo timeZoneInfo;
+    timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById("Central Asia Standard Time");
+    DateTime currentDateTime = TimeZoneInfo.ConvertTime(DateTime.Now, timeZoneInfo);
+}
+
+
+
+@using (Html.BeginForm())
+{
+    String roomStatus = "", registrationID = "", roomNo = "", roomtypeName = "", Guest="",Nationality="",CheckIn="",CheckOut="";
+    Int64 roomtypeid = 0;
+
+    System.Data.SqlClient.SqlConnection conn1 = new System.Data.SqlClient.SqlConnection(System.Configuration.ConfigurationManager.ConnectionStrings["CLoudHotelDbContext"].ToString());
+    string query1 = string.Format(
+        @"SELECT HML_ROOM.ROOMNO, HML_ROOM.RTPID, HML_REGN.REGNID, HML_REGN.CHECKI , HML_REGN.GHECKO, GUESTNM, NATIONALITY FROM HML_ROOM
+LEFT JOIN HML_REGN ON HML_ROOM.COMPID=HML_REGN.COMPID  AND HML_ROOM.ROOMNO=HML_REGN.ROOMNO
+AND HML_ROOM.COMPID='{0}' AND '{1}' BETWEEN HML_REGN.CHECKI AND HML_REGN.GHECKO
+LEFT JOIN HML_GUESTS ON HML_GUESTS.COMPID=HML_REGN.COMPID AND HML_GUESTS.REGNID = HML_REGN.REGNID AND SUBSTRING(CONVERT(NVARCHAR(20),HML_GUESTS.GUESTID,103),9,2) = '01'",
+        companyID, currentDateTime);
+    System.Data.SqlClient.SqlCommand cmd1 = new System.Data.SqlClient.SqlCommand(query1, conn1);
+    conn1.Open();
+    SqlDataAdapter da1 = new SqlDataAdapter(cmd1);
+    DataTable ds1 = new DataTable();
+    da1.Fill(ds1);
+
+    if (System.Web.HttpContext.Current.Session["LoggedUserType"] != null && System.Web.HttpContext.Current.Session["LoggedUserStatus"].ToString() == "A" && (System.Web.HttpContext.Current.Session["LoggedUserType"].ToString() == "CompanyAdmin" || System.Web.HttpContext.Current.Session["LoggedUserType"].ToString() == "UserAdmin" || System.Web.HttpContext.Current.Session["LoggedUserType"].ToString() == "User"))
+    {
+        <div id="contentHeaderBox" style="border-bottom: none;height: auto">
+            <ul class="nav nav-tabs" role="tablist">
+                <li class="active">@Html.ActionLink("Room Status", "Index", "GraphView", new { style = "color: black;background-color: gainsboro;" })</li>
+                <li>@Html.ActionLink("Booking Status", "BookingStatus", "GraphView", new { style = "color: black" })</li>
+                <li>@Html.ActionLink("Cleaning Status", "CleaningStatus", "GraphView", new { style = "color: black" })</li>
+                <li>@Html.ActionLink("Today", "Today", "GraphView", new { style = "color: black" })</li>
+                @if (System.Web.HttpContext.Current.Session["LoggedUserType"].ToString() != "User")
+                {
+
+                    <li>@Html.ActionLink("Yesterday", "LastOneDay", "GraphView", new { style = "color: black" })</li>
+                    <li>@Html.ActionLink("Last 7 Day", "Last7Day", "GraphView", new { style = "color: black" })</li>
+                    <li>@Html.ActionLink("Last 1 Month", "LastOneMonth", "GraphView", new { style = "color: black" })</li>
+                    <li>@Html.ActionLink("Last 1 Year", "LastOneYear", "GraphView", new { style = "color: black" })</li>
+                }
+
+            </ul>
+        </div>
+        <br>
+        <div class="panel panel-primary">
+            <!-- Default panel contents -->
+            <div class="panel-heading">ROOM STATUS </div>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <tr>
+                        <th>
+                            Room No
+                        </th>
+                        <th>
+                            Room Type
+                        </th>
+                        <th>
+                            Room-Status
+                        </th>
+                        <th>
+                            Registration ID
+                        </th>
+                        <th>
+                            Check IN
+                        </th>
+                        <th>
+                            Check Out
+                        </th>
+                        <th>
+                            Guest Name
+                        </th>
+                        <th>
+                            Nationality
+                        </th>
+                        <th></th>
+                    </tr>
+
+                    @foreach (DataRow row in ds1.Rows)
+                    {
+                        roomNo = Convert.ToString(row["ROOMNO"]);
+                        registrationID = row["REGNID"].ToString();
+                        if (registrationID != "")
+                        {
+                            roomStatus = "OCCUPIED";
+                        }
+                        else
+                        {
+                            roomStatus = "AVAILABLE";
+                        }
+
+
+                        roomtypeid = Convert.ToInt64(row["RTPID"]);
+                        var findRoomtype = (db.HmlRoomTpDbSet.Where(m => m.COMPID == companyID && m.RTPID == roomtypeid).Select(m => new { m.RTPNM })).ToList();
+                        foreach (var getRoomType in findRoomtype)
+                        {
+                            roomtypeName = getRoomType.RTPNM;
+                        }
+
+                        CheckIn = row["CHECKI"].ToString();
+                        if (CheckIn != "")
+                        {
+                            DateTime date1 = Convert.ToDateTime(CheckIn);
+                            CheckIn = date1.ToString("dd-MMM-yyyy");
+                        }
+                        CheckOut = row["GHECKO"].ToString();
+                        if (CheckOut != "")
+                        {
+                            DateTime date2 = Convert.ToDateTime(CheckOut);
+                            CheckOut = date2.ToString("dd-MMM-yyyy");
+                        }
+                        Guest = row["GUESTNM"].ToString();
+                        Nationality = row["NATIONALITY"].ToString();
+                        <tr>
+                            <td>
+                                @roomNo
+                            </td>
+                            <td>
+                                @roomtypeName
+                            </td>
+                            <td>
+                                @roomStatus
+                            </td>
+                            <td>
+                                @registrationID
+                            </td>
+                            <td>
+                                @CheckIn
+                            </td>
+                            <td>
+                                @CheckOut
+                            </td>
+                            <td>
+                                @Guest
+                            </td>
+                            <td>
+                                @Nationality
+                            </td>
+                            @if (registrationID != "")
+                            {
+                                <td>
+                                    <span>
+                                        <a href="@Url.Action("IndexPost", new {value = "R", roomNO = roomNo, regID = registrationID})" class="btn btn-sm btn-info" target="_blank">
+                                            @*<i class="fa fa-pencil-square-o"></i>*@R
+                                        </a>
+                                    </span>
+                                    <span>
+                                        <a href="@Url.Action("IndexPost", new {value = "B", roomNO = roomNo, regID = registrationID})" class="btn btn-sm btn-info" target="_blank">
+                                            B
+                                        </a>
+                                    </span>
+                                </td>
+                            }
+                            else
+                            {
+                                <td>
+                                </td>
+                            }
+
+                        </tr>
+                    }
+
+                </table>
+            </div>
+        </div>
+
+
+
+    }
+
+}
+
+

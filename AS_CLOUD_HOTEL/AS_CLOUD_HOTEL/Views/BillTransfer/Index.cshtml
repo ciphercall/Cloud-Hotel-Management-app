@@ -1,0 +1,394 @@
+﻿@using AS_CLOUD_HOTEL.Models
+@model AS_CLOUD_HOTEL.Models.DTO.HML_BillTransferDTO
+
+@{
+    ViewBag.Title = "Index";
+
+    if (HttpContext.Current.Session["LoggedUserType"] == null)
+    {
+        Response.Redirect(Url.Action("Index", "Login"));
+    }
+
+    var LoggedUserTp = HttpContext.Current.Session["LoggedUserType"].ToString();
+    var LoggedUserStatus = HttpContext.Current.Session["LoggedUserStatus"].ToString();
+    var LoggedCompanyStatus = HttpContext.Current.Session["LoggedCompanyStatus"].ToString();
+
+    if ((LoggedUserTp == "CompanyAdmin" || LoggedUserTp == "UserAdmin" || LoggedUserTp == "User") && LoggedUserStatus == "A" && LoggedCompanyStatus == "A")
+    {
+
+    }
+    else
+    {
+        Response.Redirect(Url.Action("Index", "Logout"));
+    }
+
+
+    CLoudHotelDbContext db = new CLoudHotelDbContext();
+    Int64 LoggedCompId = Convert.ToInt64(System.Web.HttpContext.Current.Session["loggedCompID"]);
+    Int64 loggedUserID = Convert.ToInt64(System.Web.HttpContext.Current.Session["loggedUserID"]);
+
+    var query = from m in db.AslRoleDbSet
+                where m.COMPID == LoggedCompId && m.USERID == loggedUserID && m.CONTROLLERNAME == "BillTransfer"
+                select new { m.STATUS, m.INSERTR, m.UPDATER, m.DELETER };
+    string status = "", insert = "", update = "", delete = "";
+    foreach (var S in query)
+    {
+        status = S.STATUS;
+        insert = S.INSERTR;
+        update = S.UPDATER;
+        delete = S.DELETER;
+    }
+
+    if (status == "I")
+    {
+        Response.Redirect("~/GraphView/Index");
+    }
+
+    if (insert == "I")
+    {
+        Response.Redirect("~/GraphView/Index");
+    }
+
+
+
+    TimeZoneInfo timeZoneInfo;
+    timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById("Central Asia Standard Time");
+    DateTime currentDateTime = TimeZoneInfo.ConvertTime(DateTime.Now, timeZoneInfo);
+
+
+    List<SelectListItem> listofAllRoomNo = new List<SelectListItem>();
+    var find_AllRoomNo = (from m in db.HmlRoomDbSet where m.COMPID == LoggedCompId select new { m.ROOMNO }).ToList();
+    foreach (var variable in find_AllRoomNo)
+    {
+        listofAllRoomNo.Add(new SelectListItem { Text = variable.ROOMNO.ToString(), Value = variable.ROOMNO.ToString() });
+    }
+
+    string theDate = currentDateTime.ToString("dd-MMM-yyyy");
+    DateTime dt = Convert.ToDateTime(theDate);
+    List<SelectListItem> listof_ROOMNO_Child = new List<SelectListItem>();
+    var list = (from m in db.HmlRegistrationDbSet
+                where m.COMPID == LoggedCompId && m.CHECKI <= dt && dt <= m.GHECKO
+                select new
+                {
+                    m.ROOMNO,
+                    m.COMPID,
+                    m.CHECKI,
+                    m.GHECKO
+                }
+                      ).ToList();
+
+
+
+    if (list.Count != 0)
+    {
+        foreach (var f in list)
+        {
+            var findBillDetails_RoomNo_existsORNot = (from m in db.HmlBillDetailsDbSet
+                                                      where m.COMPID == f.COMPID && f.CHECKI <= m.TRANSDT && m.TRANSDT <= f.GHECKO && m.ROOMNO == f.ROOMNO
+                                                      select new { m.ROOMNO }).ToList();
+            if (findBillDetails_RoomNo_existsORNot.Count == 0)
+            {
+                listof_ROOMNO_Child.Add(new SelectListItem { Text = f.ROOMNO.ToString(), Value = f.ROOMNO.ToString() });
+            }
+        }
+    }
+
+
+
+
+
+}
+
+
+<link href="~/Content/bootstrap_datepicker_css/datepicker.css" rel="stylesheet" />
+<link href="~/Content/bootstrap_datepicker_css/datepicker3.css" rel="stylesheet" />
+<script src="/Scripts/bootstrap-datepicker.js"></script>
+
+
+<link href="~/Content/Angular-File/ng-grid.css" rel="stylesheet" />
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    @Html.ValidationSummary(true)
+
+    <div id="contentHeaderBox">
+        <h1 style="padding-left: 16px">Bill Transfer</h1>
+      
+
+
+        @*<div class="btn-group pull-right" id="editOption">
+            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" data-hover="dropdown" aria-expanded="false">
+                <i class="fa fa-cog"></i>
+            </button>
+            <ul class="dropdown-menu pull-right" style="" role="menu">
+                @if (insert == 'A'.ToString() && update == 'A'.ToString() && delete == 'A'.ToString())
+                {
+                    <li>
+                        <a href="@Url.Action("Create", "Bill")"><i class="fa fa-plus"></i> Create</a>
+                    </li>
+                    <li>
+                        <a href="@Url.Action("Update", "Bill")"><i class="fa fa-edit"></i> Update</a>
+                    </li>
+                    <li>
+                        <a href="@Url.Action("Delete", "Bill")"><i class="fa fa-times"></i> Delete</a>
+                    </li>
+                }
+                else if (update == 'A'.ToString() && delete == 'A'.ToString())
+                {
+                    <li>
+                        <a href="@Url.Action("Update", "Bill")"><i class="fa fa-edit"></i> Update</a>
+                    </li>
+                    <li>
+                        <a href="@Url.Action("Delete", "Bill")"><i class="fa fa-times"></i> Delete</a>
+                    </li>
+                }
+                else if (insert == 'A'.ToString() && update == 'A'.ToString())
+                {
+                    <li>
+                        <a href="@Url.Action("Create", "Bill")"><i class="fa fa-plus"></i> Create</a>
+                    </li>
+                    <li>
+                        <a href="@Url.Action("Update", "Bill")"><i class="fa fa-edit"></i> Update</a>
+                    </li>
+                }
+                else if (insert == 'A'.ToString() && delete == 'A'.ToString())
+                {
+                    <li>
+                        <a href="@Url.Action("Create", "Bill")"><i class="fa fa-plus"></i> Create</a>
+                    </li>
+                    <li>
+                        <a href="@Url.Action("Delete", "Bill")"><i class="fa fa-times"></i> Delete</a>
+                    </li>
+                }
+                else if (insert == 'A'.ToString())
+                {
+                    <li>
+                        <a href="@Url.Action("Create", "Bill")"><i class="fa fa-plus"></i> Create</a>
+                    </li>
+                }
+                else if (update == 'A'.ToString())
+                {
+                    <li>
+                        <a href="@Url.Action("Update", "Bill")"><i class="fa fa-edit"></i> Update</a>
+                    </li>
+                }
+                else if (delete == 'A'.ToString())
+                {
+                    <li>
+                        <a href="@Url.Action("Delete", "Bill")"><i class="fa fa-times"></i> Delete</a>
+                    </li>
+                }
+            </ul>
+        </div>*@
+    </div>
+
+    <div class="col-md-12">
+        <div class="form-group">
+            @Html.HiddenFor(model => model.COMPID, new { id = "txtcompid", @Value = LoggedCompId })
+            @Html.HiddenFor(model => model.INSUSERID, new { id = "txtInsertUserid", @Value = loggedUserID })
+            @Html.HiddenFor(model => model.Insert, new { id = "txt_Insertid", @Value = insert })
+            @Html.HiddenFor(model => model.Update, new { id = "txt_Updateid", @Value = update })
+            @Html.HiddenFor(model => model.Delete, new { id = "txt_Deleteid", @Value = delete })
+
+            @Html.HiddenFor(model => model.registrationDate, new { id = "txtRegistrationDate", @Value = currentDateTime.ToString("dd-MMM-yyyy") })
+
+
+            @Html.HiddenFor(model => model.INSLTUDE, new { id = "latlon" })
+            <input id="lat" type="hidden" />
+            <input id="lon" type="hidden" />
+
+            <div ng-app="BillTransferApp" data-ng-controller="ApiBillTransferController">
+
+                <div class="row">
+                    <div class="col-md-12">
+                        <div>Transfer To</div>
+                        <div class="panel panel-primary" style="border: 1px solid transparent; border-radius: 0px; border-color: #e8e8e8; box-shadow: 0px 3px 9px #888888;">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <tr>
+                                        <td style="width: 25%"><label>Room No</label><span style="color: red">*</span></td>
+                                        <td style="width: 20%">@Html.DropDownListFor(model => model.ROOMNO_Parent, listofAllRoomNo, "-Select-", new {id = "txt_ROOMNO_Parent", @class = "form-control input-sm", @tabindex = "1", @autofocus = "true"})</td>
+                                        <td style="width: 20%; text-align: right"><label>Registration ID</label><span style="color: red">*</span></td>
+                                        <td style="width: 20%">@Html.TextBoxFor(model => model.REGNID_Parent, @*new SelectList(string.Empty, "Value", "Text"), "- Select -",*@ htmlAttributes: new {id = "txt_REGNID_Parent", @readonly = "true", @class = "form-control  input-sm", @tabindex = "2"})</td>
+                                        <td style="width: 15%" id="hideRow_1st"></td>
+                                    </tr>
+                                </table>
+                                <table class="table table-striped">
+                                    <tr>
+                                        <td style="width: 25%"><label>Guest Name</label></td>
+                                        <td style="width: 60%">@Html.TextBoxFor(model => model.GUESTNM_Parent, new {id = "txt_GUESTNM_Parent", @class = "form-control input-sm", @tabindex = "-1", @readonly = "true", required = "true"})</td>
+                                        <td style="width: 15%" id="submitButton_DivID"><input id="submitButtonID" type="submit" value="Submit" data-ng-click="submit($event)" class="btn btn-primary btn-block input-sm" tabindex="3"/></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        <div>Transfer From</div>
+                        <div class="well" style="box-shadow: 0px 3px 9px #888888;">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <tr>
+                                        <td style="text-align: center; width: 15%"><label>Date</label></td>
+                                        <td style="text-align: center; width: 10%"><label>Room No</label></td>
+                                        <td style="text-align: center; width: 10%"><label>ID</label></td>
+                                        <td style="text-align: center; width: 30%"><label>Guest name</label></td>
+                                        <td style="text-align: center; width: 25%"><label>Remarks</label></td>
+                                        <td style="width: 10%"></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="width: 15%"><input value=@currentDateTime.ToString("dd-MMM-yyyy") type="text" class="form-control input-sm" @*data-ng-model="newChild.Transaction_Date"*@ id="grid_TransactionDate"  readonly="readonly" tabindex="4"/></td>
+                                        <td style="width: 10%">@Html.DropDownListFor(model => model.ROOMNO_Child, listof_ROOMNO_Child, "-SELECT-", htmlAttributes: new {id = "grid_ROOMNO_Child", @class = "form-control input-sm", @data_ng_model = "newChild.BILLID", @tabindex = "5"})</td>
+                                        <td style="width: 12%"><input type="number" step="any" class="form-control input-sm" data-ng-model="newChild.ID" id="grid_registrationID" readonly="readonly" tabindex="6"/></td>
+                                        <td style="width: 28%"><input type="text" step="any" class="form-control input-sm" data-ng-model="newChild.GUESTNM_Child" id="grid_GUESTNM_Child" readonly="readonly" tabindex="7"/></td>
+                                        <td style="width: 25%"><input type="text" step="any" class="form-control input-sm" data-ng-model="newChild.REMARKS" id="grid_remarks" tabindex="8"/></td>
+                                        <td style="width: 10%" id="InsertButton_GridID"><input type="submit" value="Insert" data-ng-click="addrow($event)" class="btn btn-primary" id="btnInsertID" tabindex="7"/></td>
+                                    </tr>
+                                    <tr data-ng-repeat="testitem in RegistrationData">
+                                        <td hidden><p data-ng-hide="testitem.editMode">{{ testitem.COMPID }}</p></td>
+                                        <td hidden><p data-ng-hide="testitem.editMode">{{ testitem.ID }}</p></td>
+                                        <td style="width: 15%">
+                                            <p data-ng-hide="testitem.editMode">{{ testitem.Transaction_Date }}</p>
+                                            <input class="form-control input-sm" data-ng-show="testitem.editMode" type="text" data-ng-model="testitem.Transaction_Date" id="gridTransactionDate" readonly="readonly"/>
+                                        </td>
+                                        <td style="width: 10%">
+                                            <p data-ng-hide="testitem.editMode">{{ testitem.ROOMNO_Child }}</p>
+                                            <input class="form-control input-sm" data-ng-show="testitem.editMode" type="number" data-ng-model="testitem.ROOMNO_Child" id="gridRoomNoChild"  readonly="readonly"/>
+                                        </td>
+                                        <td style="width: 12%">
+                                            <p data-ng-hide="testitem.editMode">{{ testitem.REGNID__Child }}</p>
+                                            <input class="form-control input-sm" data-ng-show="testitem.editMode" type="text" data-ng-model="testitem.REGNID__Child" readonly="readonly" id="gridRegnidChild"/>
+                                        </td>
+                                        <td style="width: 28%">
+                                            <p data-ng-hide="testitem.editMode">{{ testitem.GUESTNM_Child }}</p>
+                                            <input class="form-control input-sm" data-ng-show="testitem.editMode" type="text" data-ng-model="testitem.GUESTNM_Child" readonly="readonly" id="gridGuestNameChild"/>
+                                        </td>
+                                        <td style="width: 25%">
+                                            <p data-ng-hide="testitem.editMode">{{ testitem.Remarks }}</p>
+                                            <input class="form-control input-sm" data-ng-show="testitem.editMode" type="text" data-ng-model="testitem.Remarks" id="gridRemarksId" />
+                                        </td>
+                                        <td style="text-align: right; width: 10%">
+                                            <p data-ng-hide="testitem.editMode">
+                                                @*<a data-ng-click="toggleEdit(testitem)" href="javascript:;"><span class="btn btn-warning btn-xs glyphicon glyphicon-edit"></span></a> |*@ <a data-ng-click="deleteItem(testitem)" href="javascript:;"><span class="btn btn-warning btn-xs glyphicon glyphicon-trash"></span></a>
+                                            </p>
+                                            @*<p data-ng-show="testitem.editMode">
+                                                <a data-ng-click="update(testitem)" href="javascript:;"><span class="btn btn-warning btn-xs glyphicon glyphicon-ok"></span></a> | <a data-ng-click="toggleEdit_Cancel(testitem)" href="javascript:;"><span class="btn btn-warning btn-xs glyphicon glyphicon-remove"></span></a>
+                                            </p>*@
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+               
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    //Latitute & longitude
+    <script src="http://maps.google.com/maps/api/js?sensor=false"></script>
+
+                <script language="javascript" type="text/javascript">
+                    $(function () {
+                        navigator.geolocation.getCurrentPosition(showPosition);
+
+                        //navigator.geolocation.getCurrentPosition(showPosition, positionError);
+
+                        function showPosition(position) {
+                            var coordinates = position.coords;
+                            $("#lat").val(coordinates.latitude);
+                            $("#lon").val(coordinates.longitude);
+
+                            $("#latlon").val(
+                                $("#lat").val() + "," + $("#lon").val()
+                            );
+                        }
+                    });
+                </script>
+
+
+
+                <script type="text/javascript">
+                    $(document).ready(function () {
+                        
+                        
+                        // Master Field
+                        $('#txt_ROOMNO_Parent').change(function () {
+                            var changedText = $("#txt_ROOMNO_Parent").val();
+                            var compid = $('#txtcompid').val();
+                            var registrationDate = $('#txtRegistrationDate').val();
+
+                            var txt_REGNID_Parent = document.getElementById('txt_REGNID_Parent');
+                            var txt_GUESTNM_Parent = document.getElementById('txt_GUESTNM_Parent');
+                            $.getJSON(
+                                '/BillTransfer/keyword_roomID', { "ChangedText": changedText, "Compid": compid, "RegistrationDate": registrationDate },
+                                function (result) {
+                                    txt_REGNID_Parent.value = result.REGNID;
+                                    txt_GUESTNM_Parent.value = result.GUESTNM;
+                                });
+
+                            $('#txt_REGNID_Parent').val("");
+                            $('#txt_GUESTNM_Parent').val("");
+                        });
+
+
+
+
+                        // Master Field
+                        $('#InsertButton_GridID').hide();
+                        $('#submitButtonID').click(function () {
+                            var room = $("#txt_ROOMNO_Parent").val();
+                            var registrationID = $("#txt_REGNID_Parent").val();
+                            if (room != "" && registrationID != "" && registrationID!=0) {
+                                $('#hideRow_1st').hide();
+                                $('#submitButton_DivID').hide();
+                                $('#InsertButton_GridID').show();
+
+                                $('#txt_ROOMNO_Parent').attr('disabled', true);
+                            }
+                        });
+
+
+
+                        //gridlevel field
+                        $('#grid_ROOMNO_Child').change(function () {
+                            var changedText = $("#grid_ROOMNO_Child").val();
+                            var compid = $('#txtcompid').val();
+                            var registrationDate = $('#grid_TransactionDate').val();
+
+                            var grid_registrationID = document.getElementById('grid_registrationID');
+                            var grid_GUESTNM_Child = document.getElementById('grid_GUESTNM_Child');
+                            $.getJSON(
+                                '/BillTransfer/keyword_roomID', { "ChangedText": changedText, "Compid": compid , "RegistrationDate": registrationDate},
+                                function (result) {
+                                    grid_registrationID.value = result.REGNID;
+                                    grid_GUESTNM_Child.value = result.GUESTNM;
+                                });
+
+                            $('#grid_registrationID').val("");
+                            $('#grid_GUESTNM_Child').val("");
+                        });
+
+                    });
+                </script>
+                
+
+}
+
+
+<link href="~/Content/themes/base/jquery-ui.css" rel="stylesheet" />
+@*<script src="~/Content/jquery-2.1.4/jquery-2.1.4.min.js"></script>*@
+<script src="~/Scripts/jquery-1.9.1.min.js"></script>
+<script src="~/Scripts/jquery-ui-1.10.4.min.js"></script>
+
+
+<script src="~/Scripts/angularjs/1.0.5/angular.js"></script>
+<script src="~/Scripts/BillTransfer/Index.js"></script>
+<script src="~/Scripts/angularjs/ui-bootstrap-tpls-0.4.0.js"></script>
+
+<script src="~/Scripts/Underscore.js"></script>
+
+
+

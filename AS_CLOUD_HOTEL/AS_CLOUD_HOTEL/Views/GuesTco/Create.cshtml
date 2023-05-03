@@ -1,0 +1,338 @@
+﻿@using System.Data.SqlClient
+@using AS_CLOUD_HOTEL.Models
+@model  AS_CLOUD_HOTEL.Models.DTO.HML_GuesTcoDTO
+@{
+    ViewBag.Title = "Create";
+    if (HttpContext.Current.Session["LoggedUserType"] == null)
+    {
+        Response.Redirect(Url.Action("Index", "Login"));
+    }
+
+    var LoggedUserTp = HttpContext.Current.Session["LoggedUserType"].ToString();
+    var LoggedUserStatus = HttpContext.Current.Session["LoggedUserStatus"].ToString();
+    var LoggedCompanyStatus = HttpContext.Current.Session["LoggedCompanyStatus"].ToString();
+
+    if ((LoggedUserTp == "CompanyAdmin" || LoggedUserTp == "UserAdmin" || LoggedUserTp == "User") && LoggedUserStatus == "A" && LoggedCompanyStatus == "A")
+    {
+
+    }
+    else
+    {
+        Response.Redirect(Url.Action("Index", "Logout"));
+    }
+
+    Int64 LoggedCompId = Convert.ToInt64(System.Web.HttpContext.Current.Session["loggedCompID"]);
+    Int64 loggedUserID = Convert.ToInt64(HttpContext.Current.Session["loggedUserID"].ToString());
+    CLoudHotelDbContext db = new CLoudHotelDbContext();
+
+
+
+    Int64 gcogid = Convert.ToInt64(LoggedCompId + "2050000");
+}
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    @Html.ValidationSummary(true)
+
+    @Html.HiddenFor(model => model.COMPID, new { id = "txthidden_ComapnyID", @Value = LoggedCompId })
+    @Html.HiddenFor(model => model.GCOGID, new { id = "txtHidden_GCOGID", @Value = gcogid })
+    @Html.HiddenFor(model => model.INSUSERID, new { id = "txtHidden_INSUSERID", @Value = loggedUserID })
+    <div id="contentHeaderBox">
+        @if (TempData["GuesTcoCreateMessage"] != null)
+        {
+            <h1 style="padding-left:16px">
+                Guest-Company Information (CREATE)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <span style="color: #AB0303">@TempData["GuesTcoCreateMessage"]</span>
+            </h1>
+        }
+        else
+        {
+            <h1 style="padding-left:16px">Guest-Company Information (CREATE)</h1>
+        }
+
+        @if ((LoggedUserTp == "CompanyAdmin" || LoggedUserTp == "UserAdmin" || LoggedUserTp == "User") && LoggedUserStatus == "A")
+        {
+            var createStatus = "";
+            var updateStatus = "";
+            var deleteStatus = "";
+            var status = "";
+
+            var checkPermisiion = (from m in db.AslRoleDbSet
+                                   where m.COMPID == LoggedCompId && m.USERID == loggedUserID && m.CONTROLLERNAME == "GuesTco"
+                                   select m).ToList();
+
+
+            foreach (var x in checkPermisiion)
+            {
+                status = x.STATUS.ToString();
+                createStatus = x.INSERTR.ToString();
+                updateStatus = x.UPDATER.ToString();
+                deleteStatus = x.DELETER.ToString();
+            }
+
+
+            if (createStatus == "A")
+            {
+
+            }
+            else if (updateStatus == "A")
+            {
+                Response.Redirect("~/GuesTco/Update");
+            }
+            else if (deleteStatus == "A")
+            {
+                Response.Redirect("~/GuesTco/Delete");
+            }
+
+            if (createStatus == "I")
+            {
+                Response.Redirect("~/GraphView/Index");
+            }
+
+            <div class="btn-group pull-right" id="editOption">
+                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" data-hover="dropdown" aria-expanded="false">
+                    <i class="fa fa-cog"></i>
+                </button>
+                <ul class="dropdown-menu pull-right" style="" role="menu">
+                    @if (createStatus == 'A'.ToString() && updateStatus == 'A'.ToString() && deleteStatus == 'A'.ToString())
+                    {
+                        <li>
+                            <a href="@Url.Action("Create", "GuesTco")"><i class="fa fa-plus"></i> Create</a>
+                        </li>
+                        <li>
+                            <a href="@Url.Action("Update", "GuesTco")"><i class="fa fa-edit"></i> Update</a>
+                        </li>
+                        <li>
+                            <a href="@Url.Action("Delete", "GuesTco")"><i class="fa fa-times"></i> Delete</a>
+                        </li>
+                    }
+                    else if (updateStatus == 'A'.ToString() && deleteStatus == 'A'.ToString())
+                    {
+                        <li>
+                            <a href="@Url.Action("Update", "GuesTco")"><i class="fa fa-edit"></i> Update</a>
+                        </li>
+                        <li>
+                            <a href="@Url.Action("Delete", "GuesTco")"><i class="fa fa-times"></i> Delete</a>
+                        </li>
+                    }
+                    else if (createStatus == 'A'.ToString() && updateStatus == 'A'.ToString())
+                    {
+                        <li>
+                            <a href="@Url.Action("Create", "GuesTco")"><i class="fa fa-plus"></i> Create</a>
+                        </li>
+                        <li>
+                            <a href="@Url.Action("Update", "GuesTco")"><i class="fa fa-edit"></i> Update</a>
+                        </li>
+                    }
+                    else if (createStatus == 'A'.ToString() && deleteStatus == 'A'.ToString())
+                    {
+                        <li>
+                            <a href="@Url.Action("Create", "GuesTco")"><i class="fa fa-plus"></i> Create</a>
+                        </li>
+                        <li>
+                            <a href="@Url.Action("Delete", "GuesTco")"><i class="fa fa-times"></i> Delete</a>
+                        </li>
+                    }
+                    else if (createStatus == 'A'.ToString())
+                    {
+                        <li>
+                            <a href="@Url.Action("Create", "GuesTco")"><i class="fa fa-plus"></i> Create</a>
+                        </li>
+                    }
+                    else if (updateStatus == 'A'.ToString())
+                    {
+                        <li>
+                            <a href="@Url.Action("Update", "GuesTco")"><i class="fa fa-edit"></i> Update</a>
+                        </li>
+                    }
+                    else if (deleteStatus == 'A'.ToString())
+                    {
+                        <li>
+                            <a href="@Url.Action("Delete", "GuesTco")"><i class="fa fa-times"></i> Delete</a>
+                        </li>
+                    }
+                </ul>
+            </div>
+
+        }
+
+    </div>
+
+    <div class="col-md-12">
+        <div class="form-group">
+            <div class="row">
+                <div class="col-md-2">
+                    @Html.Label("name", "Company Name", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-10">
+                    @Html.TextBoxFor(model => model.GCONM, htmlAttributes: new { @class = "form-control", maxlength = "100" })
+                    @Html.ValidationMessageFor(model => model.GCONM, "", new { @class = "text-danger" })
+                </div>
+            </div>
+            <br />
+            <div class="row">
+                <div class="col-md-2">
+                    @Html.Label("name", "Address", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-10">
+                    @Html.TextBoxFor(model => model.ADDRESS, htmlAttributes: new { @class = "form-control", maxlength = "100" })
+                    @Html.ValidationMessageFor(model => model.ADDRESS, "", new { @class = "text-danger" })
+                </div>
+            </div>
+
+            <br />
+            <div class="row">
+                <div class="col-md-2">
+                    @Html.Label("name", "Contact No", htmlAttributes: new {@class = "control-label"})
+                </div>
+                <div class="col-md-10">
+                    @Html.TextBoxFor(model => model.ORGCNO, htmlAttributes: new {@class = "form-control", maxlength = "50"})
+                    @Html.ValidationMessageFor(model => model.ORGCNO, "", new {@class = "text-danger"})
+                </div>
+            </div>
+
+            <br />
+            <div class="row">
+                <div class="col-md-2">
+                    @Html.Label("name", "Email", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-10">
+                    @Html.TextBoxFor(model => model.EMAILID, htmlAttributes: new { @class = "form-control", maxlength = "50" })
+                    @Html.ValidationMessageFor(model => model.EMAILID, "", new { @class = "text-danger" })
+                </div>
+            </div>
+
+            <br />
+            <div class="row">
+                <div class="col-md-2">
+                    @Html.Label("name", "Contact Person", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-10">
+                    @Html.TextBoxFor(model => model.CPNM, htmlAttributes: new { @class = "form-control", maxlength = "100" })
+                    @Html.ValidationMessageFor(model => model.CPNM, "", new { @class = "text-danger" })
+                </div>
+            </div>
+
+            <br />
+            <div class="row">
+                <div class="col-md-2">
+                    @Html.Label("name", "Designation", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-10">
+                    @Html.TextBoxFor(model => model.CPPOST, htmlAttributes: new { @class = "form-control", maxlength = "100" })
+                    @Html.ValidationMessageFor(model => model.CPPOST, "", new { @class = "text-danger" })
+                </div>
+            </div>
+            
+            <br />
+            <div class="row">
+                <div class="col-md-2">
+                    @Html.Label("name", "Mobile No (1)", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-4">
+                    @Html.TextBoxFor(model => model.MOBNO1, htmlAttributes: new { @class = "form-control", pattern = "^([0-9]{11})", maxlength = "11" })
+                    @Html.ValidationMessageFor(model => model.MOBNO1, "", new { @class = "text-danger" })
+                </div>
+                <div class="col-md-2" style="text-align: right">
+                    @Html.Label("name", "Mobile No (2)", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-4">
+                    @Html.TextBoxFor(model => model.MOBNO2, htmlAttributes: new { @class = "form-control", pattern = "^([0-9]{11})", maxlength = "11" })
+                    @Html.ValidationMessageFor(model => model.MOBNO2, "", new { @class = "text-danger" })
+                </div>
+            </div>
+            
+            <br />
+            <div class="row">
+                <div class="col-md-2">
+                    @Html.Label("name", "Discount (%)", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-3">
+                    @Html.TextBoxFor(model => model.DISCRT, htmlAttributes: new { @class = "form-control", @type = "number", @Step = "any", min = "0", max = "99999999" })
+                    @Html.ValidationMessageFor(model => model.DISCRT, "", new { @class = "text-danger" })
+                </div>
+                <div class="col-md-2" style="text-align: right">
+                    @Html.Label("name", "Remarks", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-5">
+                    @Html.TextAreaFor(model => model.REMARKS, htmlAttributes: new { @class = "form-control", maxlength = "11" })
+                    @Html.ValidationMessageFor(model => model.REMARKS, "", new { @class = "text-danger" })
+                </div>
+            </div>
+
+
+
+            @Html.TextBoxFor(model => model.INSLTUDE, new { id = "latlon", style = "display: none;" })
+            <input id="lat" type="hidden" />
+            <input id="lon" type="hidden" />
+
+
+            <br />
+            <div class="row">
+                <div class="col-md-2">
+                    <input type="submit" class="btn btn-primary btn-block" value="Save" name="command" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    //Latitute & longitude
+    <script src="http://maps.google.com/maps/api/js?sensor=false"></script>
+
+    <script language="javascript" type="text/javascript">
+        $(function () {
+            navigator.geolocation.getCurrentPosition(showPosition);
+            //navigator.geolocation.getCurrentPosition(showPosition, positionError);
+
+            function showPosition(position) {
+                var coordinates = position.coords;
+                $("#lat").val(coordinates.latitude);
+                $("#lon").val(coordinates.longitude);
+
+                $("#latlon").val(
+                    $("#lat").val() + "," + $("#lon").val()
+                );
+            }
+        });
+
+    </script>
+
+
+
+    <style type="text/css">
+        .ui-autocomplete {
+            position: absolute;
+            cursor: default;
+            background: #f0ffff;
+            max-height: 200px;
+            overflow-y: auto;
+            /* prevent horizontal scrollbar */
+            overflow-x: hidden;
+            /* add padding to account for vertical scrollbar */
+            padding-right: 20px;
+        }
+    </style>
+
+
+}
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jquery")
+    @Scripts.Render("~/bundles/jqueryui")
+    @Scripts.Render("~/bundles/jqueryval")
+
+}
+
+@*@section Scripts {
+        @Scripts.Render("~/bundles/jqueryval")
+
+    }*@
+
+
+@*<link href="~/Content/themes/base/jquery-ui.css" rel="stylesheet" />
+    <script src="~/Scripts/jquery-1.9.1.min.js"></script>
+    <script src="~/Scripts/jquery-ui-1.10.4.min.js"></script>
+    <script src="~/Scripts/Underscore.js"></script>*@
+

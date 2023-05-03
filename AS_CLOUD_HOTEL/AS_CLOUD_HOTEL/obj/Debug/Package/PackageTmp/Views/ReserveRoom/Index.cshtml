@@ -1,0 +1,460 @@
+﻿@using AS_CLOUD_HOTEL.Models
+@model AS_CLOUD_HOTEL.Models.DTO.HML_ReserveRoomDTO
+
+@{
+    ViewBag.Title = "Index";
+
+    if (HttpContext.Current.Session["LoggedUserType"] == null)
+    {
+        Response.Redirect(Url.Action("Index", "Login"));
+    }
+
+    var LoggedUserTp = HttpContext.Current.Session["LoggedUserType"].ToString();
+    var LoggedUserStatus = HttpContext.Current.Session["LoggedUserStatus"].ToString();
+    var LoggedCompanyStatus = HttpContext.Current.Session["LoggedCompanyStatus"].ToString();
+
+    if ((LoggedUserTp == "CompanyAdmin" || LoggedUserTp == "UserAdmin" || LoggedUserTp == "User") && LoggedUserStatus == "A" && LoggedCompanyStatus == "A")
+    {
+
+    }
+    else
+    {
+        Response.Redirect(Url.Action("Index", "Logout"));
+    }
+
+
+    CLoudHotelDbContext db = new CLoudHotelDbContext();
+    Int64 LoggedCompId = Convert.ToInt64(System.Web.HttpContext.Current.Session["loggedCompID"]);
+    Int64 loggedUserID = Convert.ToInt64(System.Web.HttpContext.Current.Session["loggedUserID"]);
+
+
+    var createStatus = "";
+    var updateStatus = "";
+    var deleteStatus = "";
+    var status = "";
+
+
+    List<SelectListItem> listofRoomtype = new List<SelectListItem>();
+    var find_RoomType = (from n in db.HmlRoomTpDbSet where n.COMPID == LoggedCompId select n).ToList();
+    foreach (var item in find_RoomType)
+    {
+        listofRoomtype.Add(new SelectListItem { Text = item.RTPNM, Value = Convert.ToString(item.RTPID) });
+    }
+
+    List<SelectListItem> listofDiscounttype = new List<SelectListItem>();
+    listofDiscounttype.Add(new SelectListItem { Text = "FIXED", Value = "FIXED" });
+    listofDiscounttype.Add(new SelectListItem { Text = "PERCENTAGE", Value = "PERCENTAGE" });
+
+
+}
+
+<link href="~/Content/Angular-File/ng-grid.css" rel="stylesheet" />
+
+<link href="~/Content/bootstrap_datepicker_css/datepicker.css" rel="stylesheet" />
+<link href="~/Content/bootstrap_datepicker_css/datepicker3.css" rel="stylesheet" />
+
+<script src="~/Scripts/bootstrap-datepicker.js"></script>
+
+
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    @Html.ValidationSummary(true)
+
+    <div id="contentHeaderBox" style="height:auto">
+        @if ((LoggedUserTp == "CompanyAdmin" || LoggedUserTp == "UserAdmin" || LoggedUserTp == "User") && LoggedUserStatus == "A")
+        {
+            var checkPermisiion = (from m in db.AslRoleDbSet
+                                   where m.COMPID == LoggedCompId && m.USERID == loggedUserID && m.CONTROLLERNAME == "Reserve"
+                                   select m).ToList();
+
+
+            foreach (var x in checkPermisiion)
+            {
+                status = x.STATUS.ToString();
+                createStatus = x.INSERTR.ToString();
+                updateStatus = x.UPDATER.ToString();
+                deleteStatus = x.DELETER.ToString();
+            }
+
+
+            if (createStatus == "I" || status == "I")
+            {
+                Response.Redirect("~/GraphView/Index");
+            }
+
+            if (createStatus == 'A'.ToString() || status == 'A'.ToString())
+            {
+                <ul class="nav nav-tabs" role="tablist">
+                    <li>@Html.ActionLink("RESERVATION-BASIC", "Create", "Reserve", "", new { style = "color: black;" })</li>
+                    <li class="active">@Html.ActionLink("ROOM", "Index", "ReserveRoom", "", new { style = "color: white;background-color: #286090;" })</li>
+                    <li>@Html.ActionLink("PAYMENT", "Create", "ReservePayment", "", htmlAttributes: new { style = "color: black" })</li>
+                    <li>@Html.ActionLink("COMPLEMENTARY ITEM", "Index", "ReserveComplementaryItem", "", new { style = "color: black" })</li>
+                </ul>
+            }
+
+
+
+        }
+    </div>
+    <br />
+
+
+    <div class="col-md-12">
+        <div class="panel panel-success">
+            <div class="panel-heading" style=" text-align center; background-image linear-gradient(to bottom, #286090 0%, #286090 100%); background-repeat repeat-x; color white; background-color #286090; border-color #286090;">RESERVATION-ROOM</div>
+        </div>
+        <div class="form-group">
+            <div ng-app="ReserveRoomApp" data-ng-controller="ApiReserveRoomController">
+
+                <div class="row">
+                    <form name="addReserveRoom" data-ng-show="addMode" @*style="width:600px;margin:0px auto;"*@>
+                        @Html.HiddenFor(model => model.COMPID, new { id = "txtcompid", style = "width:3em;", @Value = LoggedCompId })
+                        @Html.HiddenFor(model => model.INSUSERID, new { id = "txtInsertUserid", style = "width:3em;", @Value = loggedUserID })
+                        @Html.HiddenFor(model => model.Insert, new { id = "txt_Insertid", style = "width:3em;", @Value = createStatus })
+                        @Html.HiddenFor(model => model.Update, new { id = "txt_Updateid", style = "width:3em;", @Value = updateStatus })
+                        @Html.HiddenFor(model => model.Delete, new { id = "txt_Deleteid", style = "width:3em;", @Value = deleteStatus })
+                        @Html.HiddenFor(model => model.INSLTUDE, new { id = "latlon" })
+                        <input id="lat" type="hidden" />
+                        <input id="lon" type="hidden" />
+
+
+                        <div class="col-md-2">
+                            @Html.Label("name", "Reservation Date", htmlAttributes: new { @class = "control-label" })
+                        </div>
+                        <div class="col-md-2">
+                            @Html.TextBoxFor(model => model.RESVDT, htmlAttributes: new { id = "txt_RESVDT", @class = "form-control" })
+                        </div>
+
+                        <div class="col-md-2" style="text-align: right">
+                            @Html.Label("name", "Reservation-ID", htmlAttributes: new { @class = "control-label " })
+                        </div>
+                        <div class="col-md-2">
+                            @Html.DropDownListFor(model => model.RESVID, new SelectList(string.Empty, "Value", "Text"), htmlAttributes: new { id = "txt_RESVID", @class = "form-control" })
+                        </div>
+
+                        <input type="submit" value="Search" data-ng-click="search($event)" class="btn btn-primary" id="btnSearch" style="display: none" />
+                    </form>
+                </div>
+                <br />
+                <div class="row">
+                    <div class="col-md-2">
+                        @Html.Label("name", "Contact Person", htmlAttributes: new { @class = "control-label" })
+                    </div>
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" id="txt_CPNM" readonly="readonly" />
+                    </div>
+                </div>
+                <br />
+                <div class="row" id="gridlevel">
+                    @*<div class="col-md-1">
+                        </div>*@
+                    <div class="col-md-12">
+                        <div class="panel panel-primary">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <tr>
+                                        <td style="width: 14%" class="control-label input-sm">Room Type</td>
+                                        <td style="width: 20%">
+                                            @Html.DropDownListFor(model => model.RTPID, listofRoomtype, "-SELECT-", new { id = "RoomTypesID", @class = "form-control input-sm", @data_ng_model = "newChild.RTPID" })
+                                        </td>
+                                        <td style="width: 13%" class="control-label input-sm">Room Qty</td>
+                                        <td style="width: 20%">
+                                            <input type="number" value="0" class="form-control input-sm" data-ng-model="newChild.ROOMQTY" id="roomQty" step="any" maxlength="10" />
+                                        </td>
+                                        <td style="width: 13%" class="control-label input-sm">Rate (Offer)</td>
+                                        <td style="width: 20%">
+                                            <input type="number" value="0" class="form-control input-sm" data-ng-model="newChild.ROOMRTO" id="roomrTo" step="any" maxlength="12" />
+                                        </td>
+
+                                    </tr>
+                                </table>
+                                <table class="table table-striped">
+                                    <tr>
+                                        <td style="width: 14%" class="control-label input-sm">Discount Type</td>
+                                        <td style="width: 20%">
+                                            @Html.DropDownListFor(model => model.DISCTP, listofDiscounttype, "-SELECT-", new { id = "disctp", @class = "form-control input-sm", @data_ng_model = "newChild.DISCTP" })
+                                        </td>
+                                        <td style="width: 13%" class="control-label input-sm">Discount Amount</td>
+                                        <td style="width: 20%">
+                                            <input type="number" value="0" class="form-control input-sm" data-ng-model="newChild.DISCRT" id="disCrt" step="any" maxlength="10" />
+                                        </td>
+                                        <td style="width: 13%" class="control-label input-sm">Rate(Negotiated) </td>
+                                        <td style="width: 20%">
+                                            <input type="number" value="0" class="form-control input-sm" data-ng-model="newChild.ROOMRTS" id="roomrTs" step="any" maxlength="12" readonly="readonly" />
+                                        </td>
+                                    </tr>
+                                </table>
+                                <table class="table table-striped">
+                                    <tr>
+                                        <td style="width: 14%" class="control-label input-sm">Remarks</td>
+                                        <td style="width: 75%">
+                                            <input type="text" value="remarks" class="form-control input-sm" data-ng-model="newChild.REMARKS" id="remarksID" maxlength="100" />
+                                        </td>
+                                        <td style="width: 11%" id="insertbtn"><input type="submit" value="Insert" data-ng-click="addrow($event)" class="btn btn-primary" /></td>
+                                    </tr>
+                                </table>
+                                <table class="table table-striped">
+                                    <tr>
+                                        <th style="width: 20%" class="control-label input-sm">Room Type</th>
+                                        <th style="width: 15%" class="control-label input-sm">Rate(offer) </th>
+                                        <th style="width: 12%" class="control-label input-sm">Discount Type </th>
+                                        <th style="width: 8%" class="control-label input-sm">Discount Amount</th>
+                                        <th style="width: 10%" class="control-label input-sm">Rate(Nagotiated) </th>
+                                        <th style="width: 10%" class="control-label input-sm">Room Qty </th>
+                                        <th style="width: 17%" class="control-label input-sm">Remarks </th>
+                                        <th style="width: 8%"></th>
+                                    </tr>
+                                </table>
+                                <table class="table table-striped">
+                                    <tr data-ng-repeat="testitem in ReserveRoomData">
+                                        <td hidden><strong data-ng-hide="testitem.editMode">{{testitem.ID}}</strong></td>
+                                        <td hidden><p data-ng-hide="testitem.editMode">{{ testitem.COMPID }}</p></td>
+                                        <td hidden><p data-ng-hide="testitem.editMode">{{ testitem.RESVID }}</p></td>
+                                        <td hidden><p data-ng-hide="testitem.editMode">{{ testitem.RTPID }}</p></td>
+                                        <td style="width: 20%">
+                                            <p data-ng-hide="testitem.editMode">{{ testitem.RTPNM }}</p>
+                                            <input class="form-control input-sm" data-ng-show="testitem.editMode" type="text" data-ng-model="testitem.RTPNM" id="gridRoomTypeID" readonly="readonly" />
+                                        </td>
+                                        <td style="width: 15%">
+                                            <p data-ng-hide="testitem.editMode">{{ testitem.ROOMRTO }}</p>
+                                            <input class="form-control input-sm gridRateOffer" data-ng-show="testitem.editMode" type="number" data-ng-model="testitem.ROOMRTO" id="gridRoomrToID" step="any" maxlength="12" ng-change="RateOfferChange(testitem.ROOMRTO)" />
+                                        </td>
+                                        <td style="width: 12%">
+                                            <p data-ng-hide="testitem.editMode">{{ testitem.DISCTP }}</p>
+                                            <input class="form-control input-sm gridDiscountType" data-ng-show="testitem.editMode" type="text" data-ng-model="testitem.DISCTP" id="gridDisCtpID" maxlength="10" readonly="readonly" />
+                                        </td>
+                                        <td style="width: 8%">
+                                            <p data-ng-hide="testitem.editMode">{{ testitem.DISCRT }}</p>
+                                            <input class="form-control input-sm gridDiscountAmount" data-ng-show="testitem.editMode" type="number" data-ng-model="testitem.DISCRT" id="gridDiscrtID" step="any" maxlength="10" ng-change="DiscountAmount(testitem.ROOMRTS)"/>
+                                        </td>
+                                        <td style="width: 10%">
+                                            <p data-ng-hide="testitem.editMode">{{ testitem.ROOMRTS }}</p>
+                                            <input class="form-control input-sm gridRateNagotiated" data-ng-show="testitem.editMode" type="number" data-ng-model="testitem.ROOMRTS" id="gridRoomrTsID" step="any" maxlength="12" readonly="readonly"/>
+                                        </td>
+                                        <td style="width: 10%">
+                                            <p data-ng-hide="testitem.editMode">{{ testitem.ROOMQTY }}</p>
+                                            <input class="form-control input-sm" data-ng-show="testitem.editMode" type="number" data-ng-model="testitem.ROOMQTY" id="gridRoomQtyID" step="any" maxlength="10" />
+                                        </td>
+                                        <td style="width: 17%">
+                                            <p data-ng-hide="testitem.editMode">{{ testitem.REMARKS }}</p>
+                                            <input class="form-control input-sm" data-ng-show="testitem.editMode" type="text" data-ng-model="testitem.REMARKS" id="gridRemarksID" maxlength="100" />
+                                        </td>
+                                        <td style="width: 8%">
+                                            <p data-ng-hide="testitem.editMode"> <a data-ng-click="toggleEdit(testitem)" href="javascript:;">Edit</a> | <a data-ng-click="deleteItem(testitem)" href="javascript:;">Delete</a></p>
+                                            <p data-ng-show="testitem.editMode"><a data-ng-click="update(testitem)" href="javascript:;">Save</a> | <a data-ng-click="toggleEdit_Cancel(testitem)" href="javascript:;">Cancel</a></p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    @*<div class="col-md-1">
+                        </div>*@
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+    //Latitute & longitude
+    <script src="http://maps.google.com/maps/api/js?sensor=false"></script>
+
+    <script language="javascript" type="text/javascript">
+        $(function () {
+            navigator.geolocation.getCurrentPosition(showPosition);
+            //navigator.geolocation.getCurrentPosition(showPosition, positionError);
+
+            function showPosition(position) {
+                var coordinates = position.coords;
+                $("#lat").val(coordinates.latitude);
+                $("#lon").val(coordinates.longitude);
+
+                $("#latlon").val(
+                    $("#lat").val() + "," + $("#lon").val()
+                );
+            }
+        });
+    </script>
+
+
+        <script type="text/javascript">
+
+            $(document).ready(function () {
+
+                $('#txt_RESVDT').datepicker({
+                    format: "dd-M-yyyy",
+                    autoclose: true,
+                    todayHighlight: true,
+                    showOnFocus: true,
+                }).on('show', function (e) {
+                    if (e.date) {
+                        $(this).data('stickyDate', e.date);
+                    } else {
+                        $(this).data('stickyDate', null);
+                    }
+                }).on('hide', function (e) {
+                    var stickyDate = $(this).data('stickyDate');
+
+                    if (!e.date && stickyDate) {
+                        $(this).datepicker('setDate', stickyDate);
+                        $(this).data('stickyDate', null);
+                    }
+                    document.getElementById("txt_RESVID").focus();
+                });
+
+
+                $('#txt_RESVDT').change(function () {
+                    var datetxt = $('#txt_RESVDT').val();
+                    var companyid = $('#txtcompid').val();
+                    //$("#txt_RESVID").val(" ");
+                    $.ajax
+                    ({
+                        url: '@Url.Action("ReserveIDload", "Reserve")',
+                        type: 'post',
+                        dataType: "json",
+                        data: { theDate: datetxt, compid: companyid },
+                        success: function (data) {
+                            $("#txt_RESVID").empty();
+                            $("#txt_RESVID").append('<option value="'
+                                + "Select" + '">'
+                                + "Select" + '</option>');
+
+
+                            $.each(data, function (i, memo) {
+
+                                $("#txt_RESVID").append('<option value="'
+                                    + memo.Value + '">'
+                                    + memo.Text + '</option>');
+
+                            });
+                        }
+                    });
+                });
+
+
+
+
+                $('#txt_RESVID').change(function () {
+                    $('#btnSearch').click();
+
+                    var changedText = $("#txt_RESVID").val();
+                    var reservDate = $("#txt_RESVDT").val();
+                    var compid = $('#txtcompid').val();
+
+                    var txt_CPNM = document.getElementById('txt_CPNM');
+                    $.getJSON(
+                        '/ReservePayment/keyword_reserveID', { "ChangedText": changedText, "Compid": compid, "ReservDate": reservDate },
+                        function (result) {
+                            txt_CPNM.value = result.CONTACTP;
+                        });
+                });
+
+
+                $('#gridlevel').hide();
+                $('#btnSearch').click(function () {
+                    $('#gridlevel').show();
+                });
+                $('#insertbtn').hide();
+
+
+
+
+                $('#RoomTypesID').change(function () {
+                    var reserveid = $('#txt_RESVID option:selected').val();
+                    if (reserveid == null || reserveid == "" || reserveid == "Select") {
+                        $('#insertbtn').hide();
+                    } else {
+                        $('#insertbtn').show();
+                    }
+
+                    var roomTypes = $("#RoomTypesID").val();
+                    var reservID = $("#txt_RESVID").val();
+                    var reservDate = $("#txt_RESVDT").val();
+                    var compid = $('#txtcompid').val();
+
+                    var roomrTo = document.getElementById('roomrTo');
+                    $.getJSON(
+                        '/ReserveRoom/Find_RateOffer', { "Compid": compid, "ReservID": reservID, "ReservDate": reservDate, "RoomTypes": roomTypes },
+                        function (result) {
+                            roomrTo.value = result.ROOMRTO;
+                        });
+
+                });
+
+
+                $("#disctp").change(function () {
+                    var discountType = $('#disctp').val();
+                    if (discountType == "FIXED") {
+                        document.getElementById('roomrTs').value = (parseFloat(document.getElementById('roomrTo').value) - parseFloat(document.getElementById('disCrt').value)).toFixed(2);
+                    }
+                    else if (discountType == "PERCENTAGE") {
+                        document.getElementById('roomrTs').value = (parseFloat(document.getElementById('roomrTo').value) - ((parseFloat(document.getElementById('roomrTo').value) * parseFloat(document.getElementById('disCrt').value)) / 100)).toFixed(2);
+
+                    }
+                });
+
+
+                $("#roomrTo").change(function () {
+                    var discountType = $('#disctp').val();
+                    if (discountType == "FIXED") {
+                        document.getElementById('roomrTs').value = (parseFloat(document.getElementById('roomrTo').value) - parseFloat(document.getElementById('disCrt').value)).toFixed(2);
+                    }
+                    else if (discountType == "PERCENTAGE") {
+                        document.getElementById('roomrTs').value = (parseFloat(document.getElementById('roomrTo').value) - ((parseFloat(document.getElementById('roomrTo').value) * parseFloat(document.getElementById('disCrt').value)) / 100)).toFixed(2);
+
+                    }
+                });
+
+                $("#disCrt").change(function () {
+                    var discountType = $('#disctp').val();
+                    if (discountType == "FIXED") {
+                        document.getElementById('roomrTs').value = (parseFloat(document.getElementById('roomrTo').value) - parseFloat(document.getElementById('disCrt').value)).toFixed(2);
+                    }
+                    else if (discountType == "PERCENTAGE") {
+                        document.getElementById('roomrTs').value = (parseFloat(document.getElementById('roomrTo').value) - ((parseFloat(document.getElementById('roomrTo').value) * parseFloat(document.getElementById('disCrt').value)) / 100)).toFixed(2);
+
+                    }
+                });
+
+
+
+
+                //$(document).on("change", "input.gridRateOffer", function (e) {
+                //    var discountType = $(this).parent('td').next('input.gridDiscountType').first().val();
+                //    if (discountType == "FIXED") {
+                //        var rateoffer = $(this).val();
+                //        var discountAmount = $(this).find('input.gridDiscountAmount').val();
+                //        var rateNagoitated = (parseFloat(rateoffer) - (parseFloat(discountAmount))).toFixed(2);
+                //        $(this).find('input.gridRateNagotiated').val(rateNagoitated);
+                //    }
+                //    else if (discountType == "PERCENTAGE") {
+                //        var rateoffer = $(this).val();
+                //        var discountAmount = $('input.gridDiscountAmount').val();
+                //        var rateNagoitated = (parseFloat(rateoffer) - ((parseFloat(rateoffer) * parseFloat(discountAmount)) / 100)).toFixed(2);
+                //        $('input.gridRateNagotiated').val(rateNagoitated);
+                //    }
+
+
+                //});
+
+
+
+
+
+            });
+        </script>
+}
+
+
+@*<link href="~/Content/themes/base/jquery-ui.css" rel="stylesheet" />
+    <script src="~/Scripts/jquery-1.9.1.min.js"></script>
+    <script src="~/Scripts/jquery-ui-1.10.4.min.js"></script>*@
+
+
+<script src="~/Scripts/angularjs/1.0.5/angular.js"></script>
+<script src="~/Scripts/ReserveRoom/index.js"></script>
+<script src="~/Scripts/angularjs/ui-bootstrap-tpls-0.4.0.js"></script>

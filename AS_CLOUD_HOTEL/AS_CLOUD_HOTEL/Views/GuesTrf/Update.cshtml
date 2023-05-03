@@ -1,0 +1,441 @@
+﻿@using System.Data.SqlClient
+@using AS_CLOUD_HOTEL.Models
+@model  AS_CLOUD_HOTEL.Models.DTO.HML_GuesTrfDTO
+@{
+    ViewBag.Title = "Update";
+    if (HttpContext.Current.Session["LoggedUserType"] == null)
+    {
+        Response.Redirect(Url.Action("Index", "Login"));
+    }
+
+    var LoggedUserTp = HttpContext.Current.Session["LoggedUserType"].ToString();
+    var LoggedUserStatus = HttpContext.Current.Session["LoggedUserStatus"].ToString();
+    var LoggedCompanyStatus = HttpContext.Current.Session["LoggedCompanyStatus"].ToString();
+
+    if ((LoggedUserTp == "CompanyAdmin" || LoggedUserTp == "UserAdmin" || LoggedUserTp == "User") && LoggedUserStatus == "A" && LoggedCompanyStatus == "A")
+    {
+
+    }
+    else
+    {
+        Response.Redirect(Url.Action("Index", "Logout"));
+    }
+
+    Int64 LoggedCompId = Convert.ToInt64(System.Web.HttpContext.Current.Session["loggedCompID"]);
+    Int64 loggedUserID = Convert.ToInt64(HttpContext.Current.Session["loggedUserID"].ToString());
+    CLoudHotelDbContext db = new CLoudHotelDbContext();
+
+
+
+    Int64 grfgid = Convert.ToInt64(LoggedCompId + "2040000");
+
+
+}
+
+@using (Html.BeginForm("Update", "GuesTrf", FormMethod.Post, new { id = "submitForm" }))
+{
+    @Html.AntiForgeryToken()
+    @Html.ValidationSummary(true)
+
+    @Html.HiddenFor(model => model.ID, new { id = "txthidden_ID" })
+    @Html.HiddenFor(model => model.COMPID, new { id = "txthidden_ComapnyID", @Value = LoggedCompId })
+    @Html.HiddenFor(model => model.GRFGID, new { id = "txtHidden_GRFGID", @Value = grfgid })
+    @Html.HiddenFor(model => model.GRFID, new { id = "txtHidden_GRFID" })
+    @Html.HiddenFor(model => model.UPDUSERID, new { id = "txtHidden_UPDUSERID", @Value = loggedUserID })
+    <div id="contentHeaderBox">
+        @if (TempData["GuesTrfUpdateMessage"] != null)
+        {
+            <h1 style="padding-left:16px">
+                Guest-Refer Information (UPDATE)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <span style="color: #AB0303">@TempData["GuesTrfUpdateMessage"]</span>
+            </h1>
+        }
+        else
+        {
+            <h1 style="padding-left:16px">Guest-Refer Information (UPDATE)</h1>
+        }
+
+        @if ((LoggedUserTp == "CompanyAdmin" || LoggedUserTp == "UserAdmin" || LoggedUserTp == "User") && LoggedUserStatus == "A")
+        {
+            var createStatus = "";
+            var updateStatus = "";
+            var deleteStatus = "";
+            var status = "";
+
+            var checkPermisiion = (from m in db.AslRoleDbSet
+                                   where m.COMPID == LoggedCompId && m.USERID == loggedUserID && m.CONTROLLERNAME == "GuesTrf"
+                                   select m).ToList();
+
+
+            foreach (var x in checkPermisiion)
+            {
+                status = x.STATUS.ToString();
+                createStatus = x.INSERTR.ToString();
+                updateStatus = x.UPDATER.ToString();
+                deleteStatus = x.DELETER.ToString();
+            }
+
+            if (updateStatus == "A")
+            {
+
+            }
+            else if (createStatus == "A")
+            {
+                Response.Redirect("~/GuesTrf/Create");
+            }
+            else if (deleteStatus == "A")
+            {
+                Response.Redirect("~/GuesTrf/Delete");
+            }
+
+            if (updateStatus == "I")
+            {
+                Response.Redirect("~/GraphView/Index");
+            }
+
+
+            <div class="btn-group pull-right" id="editOption">
+                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" data-hover="dropdown" aria-expanded="false">
+                    <i class="fa fa-cog"></i>
+                </button>
+                <ul class="dropdown-menu pull-right" style="" role="menu">
+                    @if (createStatus == 'A'.ToString() && updateStatus == 'A'.ToString() && deleteStatus == 'A'.ToString())
+                    {
+                        <li>
+                            <a href="@Url.Action("Create", "GuesTrf")"><i class="fa fa-plus"></i> Create</a>
+                        </li>
+                        <li>
+                            <a href="@Url.Action("Update", "GuesTrf")"><i class="fa fa-edit"></i> Update</a>
+                        </li>
+                        <li>
+                            <a href="@Url.Action("Delete", "GuesTrf")"><i class="fa fa-times"></i> Delete</a>
+                        </li>
+                    }
+                    else if (updateStatus == 'A'.ToString() && deleteStatus == 'A'.ToString())
+                    {
+                        <li>
+                            <a href="@Url.Action("Update", "GuesTrf")"><i class="fa fa-edit"></i> Update</a>
+                        </li>
+                        <li>
+                            <a href="@Url.Action("Delete", "GuesTrf")"><i class="fa fa-times"></i> Delete</a>
+                        </li>
+                    }
+                    else if (createStatus == 'A'.ToString() && updateStatus == 'A'.ToString())
+                    {
+                        <li>
+                            <a href="@Url.Action("Create", "GuesTrf")"><i class="fa fa-plus"></i> Create</a>
+                        </li>
+                        <li>
+                            <a href="@Url.Action("Update", "GuesTrf")"><i class="fa fa-edit"></i> Update</a>
+                        </li>
+                    }
+                    else if (createStatus == 'A'.ToString() && deleteStatus == 'A'.ToString())
+                    {
+                        <li>
+                            <a href="@Url.Action("Create", "GuesTrf")"><i class="fa fa-plus"></i> Create</a>
+                        </li>
+                        <li>
+                            <a href="@Url.Action("Delete", "GuesTrf")"><i class="fa fa-times"></i> Delete</a>
+                        </li>
+                    }
+                    else if (createStatus == 'A'.ToString())
+                    {
+                        <li>
+                            <a href="@Url.Action("Create", "GuesTrf")"><i class="fa fa-plus"></i> Create</a>
+                        </li>
+                    }
+                    else if (updateStatus == 'A'.ToString())
+                    {
+                        <li>
+                            <a href="@Url.Action("Update", "GuesTrf")"><i class="fa fa-edit"></i> Update</a>
+                        </li>
+                    }
+                    else if (deleteStatus == 'A'.ToString())
+                    {
+                        <li>
+                            <a href="@Url.Action("Delete", "GuesTrf")"><i class="fa fa-times"></i> Delete</a>
+                        </li>
+                    }
+                </ul>
+            </div>
+
+        }
+
+    </div>
+
+    <div class="col-md-12">
+        <div class="form-group">
+            <div class="row">
+                <div class="col-md-2">
+                    @Html.Label("name", "Refer Name", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-10">
+                    @Html.TextBoxFor(model => model.REFERNM, htmlAttributes: new { id = "txtREFERNM", @class = "form-control", maxlength = "100", @data_val = "false"  })
+                    @Html.ValidationMessageFor(model => model.REFERNM, "", new { @class = "text-danger" })
+                </div>
+            </div>
+            <br />
+            <div class="row">
+                <div class="col-md-2">
+                    @Html.Label("name", "Address", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-10">
+                    @Html.TextBoxFor(model => model.ADDRESS, htmlAttributes: new { id = "txtADDRESS", @class = "form-control", maxlength = "100" })
+                    @Html.ValidationMessageFor(model => model.ADDRESS, "", new { @class = "text-danger" })
+                </div>
+            </div>
+
+            <br />
+            <div class="row">
+                <div class="col-md-2">
+                    @Html.Label("name", "Mobile No (1)", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-4">
+                    @Html.TextBoxFor(model => model.MOBNO1, htmlAttributes: new { id = "txtMOBNO1", @class = "form-control", pattern = "^([0-9]{11})", maxlength = "11" })
+                    @Html.ValidationMessageFor(model => model.MOBNO1, "", new { @class = "text-danger" })
+                </div>
+                <div class="col-md-2" style="text-align: right">
+                    @Html.Label("name", "Mobile No (2)", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-4">
+                    @Html.TextBoxFor(model => model.MOBNO2, htmlAttributes: new { id = "txtMOBNO2", @class = "form-control", pattern = "^([0-9]{11})", maxlength = "11" })
+                    @Html.ValidationMessageFor(model => model.MOBNO2, "", new { @class = "text-danger" })
+                </div>
+            </div>
+
+            <br />
+            <div class="row">
+                <div class="col-md-2">
+                    @Html.Label("name", "Email", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-10">
+                    @Html.TextBoxFor(model => model.EMAILID, htmlAttributes: new { id = "txtEMAILID", @class = "form-control", maxlength = "50" })
+                    @Html.ValidationMessageFor(model => model.EMAILID, "", new { @class = "text-danger" })
+                </div>
+            </div>
+
+            <br />
+            <div class="row">
+                <div class="col-md-2">
+                    @Html.Label("name", "Company Name", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-10">
+                    @Html.TextBoxFor(model => model.ORGNM, htmlAttributes: new { id = "txtORGNM", @class = "form-control", maxlength = "100" })
+                    @Html.ValidationMessageFor(model => model.ORGNM, "", new { @class = "text-danger" })
+                </div>
+            </div>
+
+            <br />
+            <div class="row">
+                <div class="col-md-2">
+                    @Html.Label("name", "Designation", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-10">
+                    @Html.TextBoxFor(model => model.POSTNM, htmlAttributes: new { id = "txtPOSTNM", @class = "form-control", maxlength = "100" })
+                    @Html.ValidationMessageFor(model => model.POSTNM, "", new { @class = "text-danger" })
+                </div>
+            </div>
+
+
+            <br />
+            <div class="row">
+                <div class="col-md-2">
+                    @Html.Label("name", "Contact No", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-10">
+                    @Html.TextBoxFor(model => model.ORGCNO, htmlAttributes: new { id = "txtORGCNO", @class = "form-control", maxlength = "50" })
+                    @Html.ValidationMessageFor(model => model.ORGCNO, "", new { @class = "text-danger" })
+                </div>
+            </div>
+
+
+            <br />
+            <div class="row">
+                <div class="col-md-2">
+                    @Html.Label("name", "Refer (%)", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-3">
+                    @Html.TextBoxFor(model => model.RFPCNT, htmlAttributes: new { id = "txtReferPercent", @class = "form-control", @type = "number", @Step = "any", min = "0", max = "99999999" })
+                    @Html.ValidationMessageFor(model => model.RFPCNT, "", new { @class = "text-danger" })
+                </div>
+                <div class="col-md-2" style="text-align: right">
+                    @Html.Label("name", "Remarks", htmlAttributes: new { @class = "control-label" })
+                </div>
+                <div class="col-md-5">
+                    @Html.TextAreaFor(model => model.REMARKS, htmlAttributes: new { id = "txtRemarks", @class = "form-control", maxlength = "11" })
+                    @Html.ValidationMessageFor(model => model.REMARKS, "", new { @class = "text-danger" })
+                </div>
+            </div>
+
+
+            @Html.HiddenFor(model => model.USERPC)
+            @Html.HiddenFor(model => model.INSTIME, new { id = "HiddentxtInstime" })
+            @Html.HiddenFor(model => model.INSIPNO, new { id = "HiddentxtInsipno" })
+            @Html.HiddenFor(model => model.INSLTUDE, new { id = "HiddentxtInsltude" })
+            @Html.HiddenFor(model => model.INSUSERID, new { id = "HiddentxtInsuserId" })
+
+            @Html.TextBoxFor(model => model.UPDLTUDE, new { id = "latlon", style = "display: none;" })
+            <input id="lat" type="hidden" />
+            <input id="lon" type="hidden" />
+
+
+            <br />
+            <div class="row">
+                <div class="col-md-2">
+                    <input type="submit" class="btn btn-primary btn-block" value="Update" name="command" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    //Latitute & longitude
+    <script src="http://maps.google.com/maps/api/js?sensor=false"></script>
+
+    <script language="javascript" type="text/javascript">
+        $(function () {
+            navigator.geolocation.getCurrentPosition(showPosition);
+            //navigator.geolocation.getCurrentPosition(showPosition, positionError);
+
+            function showPosition(position) {
+                var coordinates = position.coords;
+                $("#lat").val(coordinates.latitude);
+                $("#lon").val(coordinates.longitude);
+
+                $("#latlon").val(
+                    $("#lat").val() + "," + $("#lon").val()
+                );
+            }
+        });
+
+
+
+        $(document).ready(function () {
+
+            $('#txtREFERNM').autocomplete({
+
+                source: function (request, response) {
+                    var grfgID = $("#txtHidden_GRFGID").val();
+                    var compID = $('#txthidden_ComapnyID').val();
+                    $.ajax({
+                        url: '/GuesTrf/TagSearch_Update_Delete',
+                        type: 'GET',
+                        cache: false,
+                        data: { character: request.term, grfgid: grfgID, compid: compID },
+                        dataType: 'json',
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return {
+                                    label: item,
+                                    value: item,
+                                };
+                            }));
+                        }
+                    });
+                },
+                change: $('#txtREFERNM').keyup(_.debounce(txtOneChanged, 500)),
+                select: function (event, ui) {
+                    $("#txtREFERNM").val(ui.item.label);
+                    txtOneChanged();
+                },
+            });
+
+
+            function txtOneChanged() {
+                var changedText = $("#txtREFERNM").val();
+                var grfgid = $("#txtHidden_GRFGID").val();
+                var compid = $('#txthidden_ComapnyID').val();
+
+                var txtBox = document.getElementById('txtREFERNM');
+                
+                var txt_ID = document.getElementById('txthidden_ID');
+                var txtHidden_GRFID = document.getElementById('txtHidden_GRFID');
+                var txtADDRESS = document.getElementById('txtADDRESS');
+                var txtMOBNO1 = document.getElementById('txtMOBNO1');
+                var txtMOBNO2 = document.getElementById('txtMOBNO2');
+                var txtEMAILID = document.getElementById('txtEMAILID');
+                var txtORGNM = document.getElementById('txtORGNM');
+                var txtPOSTNM = document.getElementById('txtPOSTNM');
+                var txtORGCNO = document.getElementById('txtORGCNO');
+                var txtReferPercent = document.getElementById('txtReferPercent');
+                var txtRemarks = document.getElementById('txtRemarks');
+
+                var txtInseruserId = document.getElementById('HiddentxtInsuserId');
+                var txtInsertime = document.getElementById('HiddentxtInstime');
+                var txtinslutude = document.getElementById('HiddentxtInsltude');
+                var txtinseripno = document.getElementById('HiddentxtInsipno');
+                $.getJSON(
+                    '/GuesTrf/keyword_Update_Delete', { "ChangedText": changedText, "Grfgid": grfgid, "Compid": compid },
+                    function (result) {
+                        txtBox.value = result.REFERNM;
+                        txtHidden_GRFID.value = result.GRFID;
+
+                        txt_ID.value = result.ID;
+                        txtADDRESS.value = result.ADDRESS;
+                        txtMOBNO1.value = result.MOBNO1;
+                        txtMOBNO2.value = result.MOBNO2;
+                        txtEMAILID.value = result.EMAILID;
+                        txtORGNM.value = result.ORGNM;
+                        txtPOSTNM.value = result.POSTNM;
+                        txtORGCNO.value = result.ORGCNO;
+                        txtReferPercent.value = result.RFPCNT;
+                        txtRemarks.value = result.REMARKS;
+
+
+                        txtInseruserId.value = result.INSUSERID;
+                        txtInsertime.value = result.INSTIME;
+                        txtinslutude.value = result.INSLTUDE;
+                        txtinseripno.value = result.INSIPNO;
+
+
+                    });
+
+                $("#txthidden_ID").val("");
+                $("#txtHidden_GRFID").val("");
+                $("#txtADDRESS").val("");
+                $("#txtMOBNO1").val("");
+                $("#txtMOBNO2").val("");
+                $("#txtEMAILID").val("");
+                $("#txtORGNM").val("");
+                $("#txtPOSTNM").val("");
+                $("#txtORGCNO").val("");
+                $("#txtReferPercent").val("");
+                $("#txtRemarks").val("");
+            }
+        });
+
+    </script>
+
+
+
+    <style type="text/css">
+        .ui-autocomplete {
+            position: absolute;
+            cursor: default;
+            background: #f0ffff;
+            max-height: 200px;
+            overflow-y: auto;
+            /* prevent horizontal scrollbar */
+            overflow-x: hidden;
+            /* add padding to account for vertical scrollbar */
+            padding-right: 20px;
+        }
+    </style>
+
+
+}
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jquery")
+    @Scripts.Render("~/bundles/jqueryui")
+    @Scripts.Render("~/bundles/jqueryval")
+
+}
+
+<link href="~/Content/themes/base/jquery-ui.css" rel="stylesheet" />
+<script src="~/Scripts/jquery-1.9.1.min.js"></script>
+<script src="~/Scripts/jquery-ui-1.10.4.min.js"></script>
+<script src="~/Scripts/Underscore.js"></script>
+
+
+

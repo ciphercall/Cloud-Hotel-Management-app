@@ -1,0 +1,298 @@
+﻿@using System.Data
+@using System.Data.SqlClient
+@using System.Data.SqlTypes
+@using AS_CLOUD_HOTEL.Models
+@model AS_CLOUD_HOTEL.Models.PageModel
+
+@{
+    ViewBag.Title = "GetReservationStatement";
+    Layout = null;
+
+    if (HttpContext.Current.Session["LoggedUserType"] == null)
+    {
+        Response.Redirect(Url.Action("Index", "Login"));
+    }
+
+    var LoggedUserTp = HttpContext.Current.Session["LoggedUserType"].ToString();
+    var LoggedUserStatus = HttpContext.Current.Session["LoggedUserStatus"].ToString();
+    var LoggedCompanyStatus = HttpContext.Current.Session["LoggedCompanyStatus"].ToString();
+
+    if ((LoggedUserTp == "CompanyAdmin" || LoggedUserTp == "UserAdmin" || LoggedUserTp == "User") && LoggedUserStatus == "A" && LoggedCompanyStatus == "A")
+    {
+
+    }
+    else
+    {
+        Response.Redirect(Url.Action("Index", "Logout"));
+    }
+
+    CLoudHotelDbContext db = new CLoudHotelDbContext();
+    var companyId = Convert.ToInt64(Model.StkTrans.COMPID);
+
+    string companyName = "", address = "", contactNo = "", address2 = "";
+    var re = from m in db.AslCompanyDbSet where m.COMPID == companyId select new { m.COMPNM, m.ADDRESS, m.CONTACTNO, m.ADDRESS2 };
+    foreach (var n in re)
+    {
+        companyName = n.COMPNM;
+        address = n.ADDRESS;
+        contactNo = n.CONTACTNO;
+        address2 = n.ADDRESS2;
+    }
+    var compNm = companyName;
+    var Address = address;
+    var contactno = contactNo;
+
+    DateTime fdate = Convert.ToDateTime(Model.Report_FromDate);
+    string ddt = fdate.ToString("dd-MMM-yyyy");
+    var fromdate = ddt;
+
+    DateTime tDate = Convert.ToDateTime(Model.Report_ToDate);
+    string tdd = tDate.ToString("dd-MMM-yyyy");
+    var todate = tdd;
+
+    TimeZoneInfo timeZoneInfo;
+    timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById("Central Asia Standard Time");
+    DateTime currentDateTime = TimeZoneInfo.ConvertTime(DateTime.Now, timeZoneInfo);
+}
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <link href="~/Content/reportcss/style.css" rel="stylesheet" />
+
+</head>
+<body style=" background-color:#fafafa;">
+    <div style="width: 100%; margin: 0px auto; border: 1px solid #d3d3d3; border-radius: 5px; box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); background: none repeat scroll 0 0 white;">
+        <table id="mainTable" border="0" width="100%">
+            <thead>
+                <tr>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                </tr>
+                <tr style="background-color: #00689b">
+                    <td colspan="13">
+                        <h3 style="color: white;padding:4px">@compNm</h3>
+                        <p style="color:white;padding-left:4px">@Address<br /> @address2</p>
+                    </td>
+
+                    <td colspan="7" style="color: white;padding:8px" align="right">
+                        Powered By<br />Alchemy Software
+                    </td>
+
+                </tr>
+                <tr>
+                    <td colspan="13" align="left" style="padding: 4px; font-weight: bold">RESERVATION STATEMENT</td>
+                    <td align="right" colspan="7" style="padding:8px">Print:@currentDateTime.ToString("dd-MM-yy hh:mm tt")</td>
+                </tr>
+                <tr style="outline: thin solid">
+                    <td colspan="10" style="padding:4px;font-weight:bold">From Date : <span style="font-weight: bold">@fromdate</span></td>
+                    <td colspan="10" style="font-weight: bold"> To Date : <span style="font-weight:bold">@todate</span></td>
+                </tr>
+
+                <tr style="background-color: #00689b; outline: thin solid">
+                    <td colspan="2" style="color: white; padding: 4px" align="center">Reserve ID</td>
+                    <td colspan="2" style="color: white; padding: 4px" align="center">Check In</td>
+                    <td colspan="2" style="color: white; padding: 4px" align="center">Check Out</td>
+                    <td colspan="1" style="color: white; padding: 4px" align="center">Arrive Time</td>
+                    <td colspan="4" style="color: white; padding: 4px" align="center">Contact Person</td>
+                    <td colspan="2" style="color: white; padding: 4px" align="center">Mobile No</td>
+                    <td colspan="3" style="color: white; padding: 4px" align="center">Email ID</td>
+                    <td colspan="1" style="color: white; padding: 4px" align="center">Adult Qty</td>
+                    <td colspan="1" style="color: white; padding: 4px" align="center">Child Qty</td>
+                    <td colspan="1" style="color: white; padding: 4px" align="center">Currency</td>
+                    <td colspan="1" style="color: white; padding: 4px" align="center">Room Qty</td>
+
+                </tr>
+            </thead>
+            <tbody>
+                @{
+
+
+                    System.Data.SqlClient.SqlConnection conn1 = new System.Data.SqlClient.SqlConnection(System.Configuration.ConfigurationManager.ConnectionStrings["CLoudHotelDbContext"].ToString());
+                    string query1 = string.Format(
+                        @"SELECT DISTINCT RESVDT, A.RESVID, CHECKI
+FROM   HML_RESERVE A INNER JOIN HML_RESVROOM B ON A.COMPID = B.COMPID AND A.RESVID = B.RESVID
+WHERE  A.COMPID = '{0}' AND RESVDT BETWEEN '{1}' AND '{2}'
+GROUP BY RESVDT, A.RESVID, CHECKI, GHECKO, ARRIVETM, CPNM, CPMOBNO, CPEMAIL, ADULTQP, CHILDQP, CCYTP
+ORDER BY RESVDT, CHECKI, A.RESVID",
+                        companyId, fdate, todate);
+                    System.Data.SqlClient.SqlCommand cmd1 = new System.Data.SqlClient.SqlCommand(query1, conn1);
+                    conn1.Open();
+                    SqlDataAdapter da1 = new SqlDataAdapter(cmd1);
+                    DataTable ds1 = new DataTable();
+                    da1.Fill(ds1);
+                    string reservDate = "", reservDate_Group="";
+
+                    foreach (DataRow row1 in ds1.Rows)
+                    {
+                        reservDate = row1["RESVDT"].ToString();
+                        DateTime date = Convert.ToDateTime(reservDate);
+                        reservDate_Group = date.ToString("dd-MMM-yyyy");
+
+                        System.Data.SqlClient.SqlConnection conn = new System.Data.SqlClient.SqlConnection(System.Configuration.ConfigurationManager.ConnectionStrings["CLoudHotelDbContext"].ToString());
+                        string query = string.Format(
+                            @"SELECT RESVDT, A.RESVID, CHECKI, GHECKO, ARRIVETM, CPNM, CPMOBNO, CPEMAIL, ADULTQP, CHILDQP, CCYTP, SUM(ISNULL(ROOMQTY,0)) ROOMQTY
+FROM   HML_RESERVE A INNER JOIN HML_RESVROOM B ON A.COMPID = B.COMPID AND A.RESVID = B.RESVID
+WHERE  A.COMPID = '{0}' AND RESVDT BETWEEN '{1}' AND '{2}'
+GROUP BY RESVDT, A.RESVID, CHECKI, GHECKO, ARRIVETM, CPNM, CPMOBNO, CPEMAIL, ADULTQP, CHILDQP, CCYTP
+ORDER BY RESVDT, CHECKI, A.RESVID",
+                            companyId, fdate, todate);
+                        System.Data.SqlClient.SqlCommand cmd = new System.Data.SqlClient.SqlCommand(query, conn);
+                        conn.Open();
+                        SqlDataAdapter da = new SqlDataAdapter(cmd);
+                        DataTable ds = new DataTable();
+                        da.Fill(ds);
+
+                        string resDate = "", reservDate_Child="",resvid = "", CHECKI="", GHECKO="", ARRIVETM="", CPNM="", CPMOBNO="",CPEMAIL = "", ADULTQP="", CHILDQP="", CCYTP ="", ROOMQTY="";
+
+
+                        foreach (DataRow row in ds.Rows)
+                        {
+                            resDate = row["RESVDT"].ToString();
+                            DateTime date1 = Convert.ToDateTime(resDate);
+                            reservDate_Child = date1.ToString("dd-MMM-yyyy");
+                            if (reservDate_Group == reservDate_Child)
+                            {
+                                <tr>
+                                    <td><br /></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2" align="left" style="font-weight:bold;padding-left: 4px;">
+                                        Date:
+                                    </td>
+                                    <td colspan="16" align="left" style="font-weight:bold">
+                                        @reservDate_Child
+                                    </td>
+                                </tr>
+                                break;
+                            }
+
+                        }
+
+
+                        foreach (DataRow row in ds.Rows)
+                        {
+
+                            resDate = row["RESVDT"].ToString();
+                            DateTime date1 = Convert.ToDateTime(resDate);
+                            reservDate_Child = date1.ToString("dd-MMM-yyyy");
+                            if (reservDate_Group == reservDate_Child)
+                            {
+                                resvid = row["RESVID"].ToString();
+                                CHECKI = Convert.ToString(row["CHECKI"]);
+                                DateTime date2 = Convert.ToDateTime(CHECKI);
+                                CHECKI = date2.ToString("dd-MMM-yyyy");
+
+                                GHECKO = Convert.ToString(row["GHECKO"]);
+                                DateTime date3 = Convert.ToDateTime(GHECKO);
+                                GHECKO = date3.ToString("dd-MMM-yyyy");
+
+                                ARRIVETM = Convert.ToString(row["ARRIVETM"]);
+                                CPNM = Convert.ToString(row["CPNM"]);
+                                CPMOBNO = Convert.ToString(row["CPMOBNO"]);
+                                CPEMAIL = Convert.ToString(row["CPEMAIL"]);
+                                ADULTQP = Convert.ToString(row["ADULTQP"]);
+                                CHILDQP = Convert.ToString(row["CHILDQP"]);
+                                CCYTP = Convert.ToString(row["CCYTP"]);
+                                ROOMQTY = Convert.ToString(row["ROOMQTY"]);
+
+
+
+
+                                <tr style="outline:thin solid">
+                                    <td align="left" colspan="2" style="padding-left: 4px">
+                                        @resvid
+                                    </td>
+                                    <td align="left" colspan="2">
+                                        @CHECKI
+                                    </td>
+                                    <td align="left" colspan="2">
+                                        @GHECKO
+                                    </td>
+                                    <td align="center" colspan="1">
+                                        @ARRIVETM
+                                    </td>
+                                    <td align="left" colspan="4">
+                                        @CPNM
+                                    </td>
+                                    <td align="left" colspan="2">
+                                        @CPMOBNO
+                                    </td>
+                                    <td align="left" colspan="3">
+                                        @CPEMAIL
+                                    </td>
+                                    <td align="right" colspan="1">
+                                        @ADULTQP
+                                    </td>
+                                    <td align="right" colspan="1">
+                                        @CHILDQP
+                                    </td>
+                                    <td align="center" colspan="1">
+                                        @CCYTP
+                                    </td>
+                                    <td align="right" colspan="1">
+                                        @ROOMQTY
+                                    </td>
+                                   
+                                </tr>
+                            }
+                        }
+                        conn.Close();
+                    }
+                    conn1.Close();
+                }
+                @*<tr>
+                        <td colspan="2"></td>
+                        <td colspan="2"></td>
+                        <td colspan="1"></td>
+                        <td align="right" colspan="3" style="font-weight:bold">
+                            Total:
+                        </td>
+                        <td align="right" colspan="2" style="font-weight:bold">
+                            @total_BQTY
+                        </td>
+                        <td align="right" colspan="2" style="font-weight:bold">
+                            @total_SQTY
+                        </td>
+                        <td align="right" colspan="2" style="font-weight:bold">
+                            @total_INQTY
+                        </td>
+                        <td align="right" colspan="2" style="font-weight:bold">
+                            @total_OUTQTY
+                        </td>
+                        <td align="right" colspan="2" style="font-weight:bold">
+                            @{
+                                total_Balance = Opening + total_BQTY - total_SQTY + total_INQTY - total_OUTQTY;
+                            }
+                            @total_Balance
+                        </td>
+                    </tr>*@
+
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>
+
+

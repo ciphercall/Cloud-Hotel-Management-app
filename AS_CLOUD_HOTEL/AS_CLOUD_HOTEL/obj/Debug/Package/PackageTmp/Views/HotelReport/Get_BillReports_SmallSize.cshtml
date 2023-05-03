@@ -1,0 +1,324 @@
+﻿@using AS_CLOUD_HOTEL.DataAccess
+@using AS_CLOUD_HOTEL.Models
+@model AS_CLOUD_HOTEL.Models.DTO.HML_BillDTO
+
+@{
+    ViewBag.Title = "Get_BillReports_SmallSize";
+    Layout = null;
+
+    if (HttpContext.Current.Session["LoggedUserType"] == null)
+    {
+        Response.Redirect(Url.Action("Index", "Login"));
+    }
+
+    var LoggedUserTp = HttpContext.Current.Session["LoggedUserType"].ToString();
+    var LoggedUserStatus = HttpContext.Current.Session["LoggedUserStatus"].ToString();
+    var LoggedCompanyStatus = HttpContext.Current.Session["LoggedCompanyStatus"].ToString();
+
+    if ((LoggedUserTp == "CompanyAdmin" || LoggedUserTp == "UserAdmin" || LoggedUserTp == "User") && LoggedUserStatus == "A" && LoggedCompanyStatus == "A")
+    {
+
+    }
+    else
+    {
+        Response.Redirect(Url.Action("Index", "Logout"));
+    }
+
+    CLoudHotelDbContext db = new CLoudHotelDbContext();
+
+    var companyId = Convert.ToInt64(Model.COMPID);
+    var registrationID = Convert.ToInt64(Model.REGNID);
+    var MonthYear = Convert.ToString(Model.TRANSMY);
+    var InvoiceNo = Convert.ToInt64(Model.TRANSNO);
+    var roomNO = Convert.ToInt64(Model.ROOMNO);
+
+
+    string companyName = "";
+
+    var SelectUserName = from n in db.AslCompanyDbSet where n.COMPID == companyId select new { companyName = n.COMPNM };
+    foreach (var n in SelectUserName)
+    {
+        companyName = n.companyName;
+    }
+    var compNm = companyName;
+
+
+    Decimal totalAmount = 0, service = 0, vatAmount = 0, gross = 0, advance = 0, discount = 0, netAmount = 0, paid = 0, balance = 0;
+    var parentDatafound = from n in db.HmlBillDbSet
+                          where n.COMPID == companyId && n.TRANSMY == MonthYear && n.TRANSNO == InvoiceNo
+                          select new { n.ROOMNO, n.TOTAMT, n.SCHARGE, n.VATAMT, n.GROSSAMT, n.ADVAMT, n.DISCOUNT, n.NETAMT, n.PAIDAMT, n.BALAMT };
+
+    foreach (var a in parentDatafound)
+    {
+        totalAmount = Convert.ToDecimal(a.TOTAMT);
+        service = Convert.ToDecimal(a.SCHARGE);
+        vatAmount = Convert.ToDecimal(a.VATAMT);
+        gross = Convert.ToDecimal(a.GROSSAMT);
+        advance = Convert.ToDecimal(a.ADVAMT);
+        discount = Convert.ToDecimal(a.DISCOUNT);
+        netAmount = Convert.ToDecimal(a.NETAMT);
+        paid = Convert.ToDecimal(a.PAIDAMT);
+        balance = Convert.ToDecimal(a.BALAMT);
+    }
+
+
+
+    TimeZoneInfo timeZoneInfo;
+    timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById("Central Asia Standard Time");
+    DateTime currentDateTime = TimeZoneInfo.ConvertTime(DateTime.Now, timeZoneInfo);
+
+    Decimal totalGross = 0;
+    var childDataList = (from billDetails in db.HmlBillDetailsDbSet
+                         join billname in db.HmlBillHpDbSet on billDetails.COMPID equals billname.COMPID
+                         where billDetails.COMPID == companyId && billDetails.TRANSMY == MonthYear && billDetails.TRANSNO == InvoiceNo && billDetails.BILLID == billname.BILLID
+                         select new
+                         {
+                             billDetails.ID,
+                             billDetails.COMPID,
+                             billDetails.TRANSDT,
+                             billDetails.TRANSMY,
+                             billDetails.TRANSNO,
+
+                             billDetails.ROOMNO,
+                             billDetails.REGNID,
+                             billDetails.BILLID,
+                             billname.BILLNM,
+                             billDetails.AMOUNT,
+                             billDetails.REMARKS,
+                         }).OrderBy(e => e.BILLNM).ToList();
+
+
+
+    string guestName = "";
+    var findGuestName = (from HML_REGN in db.HmlRegistrationDbSet
+                         join HML_GUESTS in db.HmlRegistrationGuestsDbSet on HML_REGN.COMPID equals HML_GUESTS.COMPID
+                         where HML_REGN.COMPID == companyId && HML_REGN.REGNID == registrationID && HML_GUESTS.REGNID == HML_REGN.REGNID
+                         select new { HML_GUESTS.GUESTNM }).ToList();
+    foreach (var x in findGuestName)
+    {
+        guestName = x.GUESTNM;
+        break;
+    }
+}
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <link href="~/Content/reportcss/style.css" rel="stylesheet" />
+
+</head>
+
+
+
+@*<body style=" background-color:#fafafa;">
+    <div style="width: 960px; margin: 0px auto; border: 1px solid #d3d3d3; border-radius: 5px; box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); background: none repeat scroll 0 0 white;">*@
+
+
+<body style=" background-color:#fafafa;">
+    <div style="width: 400px; float: left; margin: 0px auto; border: 1px solid #d3d3d3; border-radius: 5px; box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); background: none repeat scroll 0 0 white; ">
+        <table style="width:100%">
+            <tr style="background-color: #00689b">
+                <td colspan="2">
+                    <h3 style="color: white; padding: 4px; font-size: small;">@compNm</h3>
+                </td>
+
+                <td colspan="5" style="color: white;padding:8px" align="right">
+                    Powered By<br />Alchemy Software
+                </td>
+
+            </tr>
+
+            <tr style="background-color: #00689b ;">
+                <td colspan="2">
+                    <h3 style="color: white; padding: 4px; font-size: small;">Bill Memo</h3>
+                </td>
+                <td colspan="5" style="color: white" align="right">
+                    Print:@currentDateTime.ToString("dd-MM-yy hh:mm tt")
+                </td>
+            </tr>
+        </table>
+        <table style="width: 100%">
+            <tr style="outline: thin solid; width: 100%">
+                <td align="left" style="width: 25%">Date</td>
+                <td style="font-weight: bold; width: 25%">: @ViewBag.TransDate</td>
+                <td align="right" style="width: 25%">Invoice:</td>
+                <td align="right" style="font-weight: bold; width: 25%">@InvoiceNo</td>
+            </tr>
+        </table>
+        <table style="width:100%">
+            <tr style="width: 100%">
+                <td align="left" style="width: 25%">Room No</td>
+                <td style="font-weight: bold; width: 15%">: @roomNO</td>
+                <td align="right" style="width: 35%">Registration ID:</td>
+                <td align="right" style="font-weight: bold; width: 25%">@registrationID</td>
+            </tr>
+        </table>
+        <table style="width:100%">
+            <tr style="outline: thin solid; width: 100%">
+                <td align="left" style="width: 25%">Guest Name</td>
+                <td style="font-weight: bold; width: 75%">: @guestName</td>
+            </tr>
+        </table>
+        <table style="width:100%">
+            <tr style="background-color: #00689b; outline: thin solid; width: 100%">
+                <td style="color: white; padding: 4px; width: 60%">Particulars</td>
+                <td style="color: white; padding: 4px; width: 40%">Amount</td>
+            </tr>
+            @foreach (var item in childDataList)
+            {
+                string comma_amount = Convert.ToString(item.AMOUNT);
+                comma_amount = CommainAmount.AmountwithComma(comma_amount);
+                <tr style="font-size: small">
+                    <td style="padding: 4px; width: 60%" class="tableData">
+                        @Html.DisplayFor(modelItem => item.BILLNM)
+                    </td>
+                    <td align="right" style="padding: 4px; width: 40%" class="tableData">
+                        @comma_amount
+                    </td>
+                </tr>
+                <tr>
+                    <td style=" width: 60%"><hr /></td>
+                    <td style=" width: 40%"><hr /></td>
+                </tr>
+                totalGross = totalGross + Convert.ToDecimal(item.AMOUNT);
+            }
+        </table>
+        @{
+            string comma_totalGross = Convert.ToString(totalGross);
+            comma_totalGross = CommainAmount.AmountwithComma(comma_totalGross);
+            string comma_service = Convert.ToString(service);
+            comma_service = CommainAmount.AmountwithComma(comma_service);
+            string comma_vatAmount = Convert.ToString(vatAmount);
+            comma_vatAmount = CommainAmount.AmountwithComma(comma_vatAmount);
+            string comma_gross = Convert.ToString(gross);
+            comma_gross = CommainAmount.AmountwithComma(comma_gross);
+            string comma_advance = Convert.ToString(advance);
+            comma_advance = CommainAmount.AmountwithComma(comma_advance);
+            string comma_discount = Convert.ToString(discount);
+            comma_discount = CommainAmount.AmountwithComma(comma_discount);
+            string comma_netAmount = Convert.ToString(netAmount);
+            comma_netAmount = CommainAmount.AmountwithComma(comma_netAmount);
+            string comma_paid = Convert.ToString(paid);
+            comma_paid = CommainAmount.AmountwithComma(comma_paid);
+            string comma_balance = Convert.ToString(balance);
+            comma_balance = CommainAmount.AmountwithComma(comma_balance);
+        }
+        <table style="width:400px">
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+
+                <td colspan="2" align="right"><strong>Total:</strong></td>
+                <td align="right" style="font-weight: bold">
+                    @comma_totalGross
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+
+                <td colspan="2" align="right"><strong>Service:</strong></td>
+                <td align="right" style="font-weight:bold">
+                    @comma_service
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+
+                <td colspan="2" align="right"><strong>Vat:</strong></td>
+                <td align="right" style="font-weight:bold">
+                    @comma_vatAmount
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+
+                <td colspan="2" align="right"><strong>Gross:</strong></td>
+                <td align="right" style="font-weight:bold">
+                    @comma_gross
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+
+                <td colspan="2" align="right"><strong>Advance:</strong></td>
+                <td align="right" style="font-weight: bold">
+                    @comma_advance
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+
+                <td colspan="2" align="right"><strong>Discount:</strong></td>
+                <td align="right" style="font-weight: bold">
+                    @comma_discount
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+
+                <td colspan="2" align="right"><strong>Net:</strong></td>
+                <td align="right" style="font-weight: bold">
+                    @comma_netAmount
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+
+                <td colspan="2" align="right"><strong>Paid:</strong></td>
+                <td align="right" style="font-weight: bold">
+                    @comma_paid
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+
+                <td colspan="2" align="right"><strong>Balance:</strong></td>
+                <td align="right" style="font-weight: bold">
+                    @comma_balance
+                </td>
+            </tr>
+        </table>
+
+
+        <table style="width:400px">
+            @{
+                string amount = "", InWords = "";
+                amount = Convert.ToString(netAmount);
+                InWords = SpellAmount.MoneyConvFn(amount);
+            }
+            <tr style="outline: thin solid">
+                <td colspan="7" align="left" style="padding-left:8px">In Words : <span>@InWords</span></td>
+            </tr>
+        </table>
+
+        <table style="width:100%">
+            <tr>
+                <td align="center"><strong>THANK YOU</strong></td>
+            </tr>
+        </table>
+    </div>
+</body>
+
+</html>
+
+
+

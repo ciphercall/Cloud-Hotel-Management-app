@@ -1,0 +1,268 @@
+﻿@using System.Data
+@using System.Data.SqlClient
+@using System.Data.SqlTypes
+@using AS_CLOUD_HOTEL.Models
+@model AS_CLOUD_HOTEL.Models.PageModel
+
+@{
+    ViewBag.Title = "GetDue_Undertaking";
+    Layout = null;
+
+    if (HttpContext.Current.Session["LoggedUserType"] == null)
+    {
+        Response.Redirect(Url.Action("Index", "Login"));
+    }
+
+    var LoggedUserTp = HttpContext.Current.Session["LoggedUserType"].ToString();
+    var LoggedUserStatus = HttpContext.Current.Session["LoggedUserStatus"].ToString();
+    var LoggedCompanyStatus = HttpContext.Current.Session["LoggedCompanyStatus"].ToString();
+
+    if ((LoggedUserTp == "CompanyAdmin" || LoggedUserTp == "UserAdmin" || LoggedUserTp == "User") && LoggedUserStatus == "A" && LoggedCompanyStatus == "A")
+    {
+
+    }
+    else
+    {
+        Response.Redirect(Url.Action("Index", "Logout"));
+    }
+
+    CLoudHotelDbContext db = new CLoudHotelDbContext();
+    var companyId = Convert.ToInt64(Model.StkTrans.COMPID);
+
+    string companyName = "", address = "", contactNo = "", address2 = "";
+    var re = from m in db.AslCompanyDbSet where m.COMPID == companyId select new { m.COMPNM, m.ADDRESS, m.CONTACTNO, m.ADDRESS2 };
+    foreach (var n in re)
+    {
+        companyName = n.COMPNM;
+        address = n.ADDRESS;
+        contactNo = n.CONTACTNO;
+        address2 = n.ADDRESS2;
+    }
+    var compNm = companyName;
+    var Address = address;
+    var contactno = contactNo;
+
+    DateTime fdate = Convert.ToDateTime(Model.Report_FromDate);
+    string ddt = fdate.ToString("dd-MMM-yyyy");
+    var fromdate = ddt;
+
+    DateTime tDate = Convert.ToDateTime(Model.Report_ToDate);
+    string tdd = tDate.ToString("dd-MMM-yyyy");
+    var todate = tdd;
+
+    TimeZoneInfo timeZoneInfo;
+    timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById("Central Asia Standard Time");
+    DateTime currentDateTime = TimeZoneInfo.ConvertTime(DateTime.Now, timeZoneInfo);
+}
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <link href="~/Content/reportcss/style.css" rel="stylesheet" />
+
+</head>
+<body style=" background-color:#fafafa;">
+    <div style="width: 960px; margin: 0px auto; border: 1px solid #d3d3d3; border-radius: 5px; box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); background: none repeat scroll 0 0 white;">
+        <table id="mainTable" border="0" width="100%">
+            <thead>
+                <tr>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                    <td width="5%"></td>
+                </tr>
+                <tr style="background-color: #00689b">
+                    <td colspan="13">
+                        <h3 style="color: white;padding:4px">@compNm</h3>
+                        <p style="color:white;padding-left:4px">@Address<br /> @address2</p>
+                    </td>
+
+                    <td colspan="7" style="color: white;padding:8px" align="right">
+                        Powered By<br />Alchemy Software
+                    </td>
+
+                </tr>
+                <tr>
+                    <td colspan="13" align="left" style="padding: 4px; font-weight: bold">Due Holder/Undertaking Report</td>
+                    <td align="right" colspan="7" style="padding:8px">Print:@currentDateTime.ToString("dd-MM-yy hh:mm tt")</td>
+                </tr>
+                <tr style="outline: thin solid">
+                    <td colspan="10" style="padding:4px;font-weight:bold">From Date : <span style="font-weight: bold">@fromdate</span></td>
+                    <td colspan="10" style="font-weight: bold"> To Date : <span style="font-weight:bold">@todate</span></td>
+                </tr>
+                <tr style="background-color: #00689b; outline: thin solid">
+                    <td colspan="2" style="color: white; padding: 4px" align="center">Reg. ID</td>
+                    <td colspan="4" style="color: white; padding: 4px" align="center">Guest Name</td>
+                    <td colspan="2" style="color: white; padding: 4px" align="center">Room No</td>
+                    <td colspan="3" style="color: white; padding: 4px" align="center">Net Amount</td>
+                    <td colspan="3" style="color: white; padding: 4px" align="center">Paid Amount</td>
+                    <td colspan="2" style="color: white; padding: 4px" align="center">Balance Amount</td>
+                    <td colspan="2" style="color: white; padding: 4px" align="center">Receive Amount</td>
+                    <td colspan="2" style="color: white; padding: 4px" align="center">Due Amount</td>
+                </tr>
+            </thead>
+            <tbody>
+                @{
+
+
+                    System.Data.SqlClient.SqlConnection conn1 = new System.Data.SqlClient.SqlConnection(System.Configuration.ConfigurationManager.ConnectionStrings["CLoudHotelDbContext"].ToString());
+                    string query1 = string.Format(
+                        @"SELECT DISTINCT ACCOUNTNM,DUEHID
+FROM HML_BILL A LEFT OUTER JOIN HML_REGNPAY B  ON  A.COMPID = B.COMPID AND A.REGNID = B.REGNID AND TRFOR='BILL' AND B.TRANSDT >= A.TRANSDT
+INNER JOIN HML_GUESTS C ON A.COMPID = C.COMPID AND A.REGNID = C.REGNID AND SUBSTRING(CONVERT(NVARCHAR(20),C.GUESTID,103),9,2) = '01'	
+INNER JOIN GL_ACCHART D ON A.COMPID = D.COMPID AND A.DUEHID = D.ACCOUNTCD
+WHERE  A.COMPID = '{0}' AND A.TRANSDT BETWEEN '{1}' AND '{2}' --AND ISNULL(BALAMT,0) > 0
+GROUP BY DUEHID, ACCOUNTNM
+ORDER BY ACCOUNTNM",
+                        companyId, fdate, todate);
+                    System.Data.SqlClient.SqlCommand cmd1 = new System.Data.SqlClient.SqlCommand(query1, conn1);
+                    conn1.Open();
+                    SqlDataAdapter da1 = new SqlDataAdapter(cmd1);
+                    DataTable ds1 = new DataTable();
+                    da1.Fill(ds1);
+                    string ACCOUNTNM_Group = "", DUEHID_Group="";
+
+                    foreach (DataRow row1 in ds1.Rows)
+                    {
+                        ACCOUNTNM_Group = row1["ACCOUNTNM"].ToString();
+                        DUEHID_Group = row1["DUEHID"].ToString();
+
+                        System.Data.SqlClient.SqlConnection conn = new System.Data.SqlClient.SqlConnection(System.Configuration.ConfigurationManager.ConnectionStrings["CLoudHotelDbContext"].ToString());
+                        string query = string.Format(
+                            @"SELECT DUEHID, ACCOUNTNM, A.REGNID, GUESTNM, A.ROOMNO, ISNULL(NETAMT,0) NETAMT, ISNULL(PAIDAMT,0) PAIDAMT, ISNULL(BALAMT,0) BALAMT, SUM(ISNULL(AMOUNT,0)) RECAMT, (ISNULL(BALAMT,0) - SUM(ISNULL(AMOUNT,0))) DUEAMT
+FROM HML_BILL A LEFT OUTER JOIN HML_REGNPAY B  ON  A.COMPID = B.COMPID AND A.REGNID = B.REGNID AND TRFOR='BILL' AND B.TRANSDT >= A.TRANSDT
+INNER JOIN HML_GUESTS C ON A.COMPID = C.COMPID AND A.REGNID = C.REGNID AND SUBSTRING(CONVERT(NVARCHAR(20),C.GUESTID,103),9,2) = '01'	
+INNER JOIN GL_ACCHART D ON A.COMPID = D.COMPID AND A.DUEHID = D.ACCOUNTCD
+WHERE  A.COMPID = '{0}' AND A.TRANSDT BETWEEN '{1}' AND '{2}' --AND ISNULL(BALAMT,0) > 0
+GROUP BY DUEHID, ACCOUNTNM, A.REGNID, GUESTNM, A.ROOMNO, ISNULL(NETAMT,0), ISNULL(PAIDAMT,0), ISNULL(BALAMT,0)
+ORDER BY ACCOUNTNM, A.REGNID",
+                            companyId, fdate, todate);
+                        System.Data.SqlClient.SqlCommand cmd = new System.Data.SqlClient.SqlCommand(query, conn);
+                        conn.Open();
+                        SqlDataAdapter da = new SqlDataAdapter(cmd);
+                        DataTable ds = new DataTable();
+                        da.Fill(ds);
+
+                        String ACCOUNTNM_Child = "", DUEHID_Child = "", REGNID = "", GUESTNM = "", ROOMNO = "", NETAMT = "", PAIDAMT = "", BALAMT="", RECAMT="", DUEAMT="";
+
+                        foreach (DataRow row in ds.Rows)
+                        {
+                            ACCOUNTNM_Child = row["ACCOUNTNM"].ToString();
+                            DUEHID_Child = row1["DUEHID"].ToString();
+                            if (ACCOUNTNM_Group == ACCOUNTNM_Child && DUEHID_Group==DUEHID_Child)
+                            {
+                                <tr>
+                                    <td><br /></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" align="left" style="font-weight:bold;padding-left: 4px;">
+                                        Due Holder Name:
+                                    </td>
+                                    <td colspan="17" align="left" style="font-weight:bold">
+                                        @ACCOUNTNM_Child
+                                    </td>
+                                </tr>
+                                break;
+                            }
+
+                        }
+
+
+                        foreach (DataRow row in ds.Rows)
+                        {
+                            ACCOUNTNM_Child = row["ACCOUNTNM"].ToString();
+                            DUEHID_Child = row1["DUEHID"].ToString();
+                            if (ACCOUNTNM_Group == ACCOUNTNM_Child && DUEHID_Group == DUEHID_Child)
+                            {
+                                REGNID = Convert.ToString(row["REGNID"]);
+                                GUESTNM = Convert.ToString(row["GUESTNM"]);
+                                ROOMNO = Convert.ToString(row["ROOMNO"]);
+                                NETAMT = Convert.ToString(row["NETAMT"]);
+                                PAIDAMT = Convert.ToString(row["PAIDAMT"]);
+                                BALAMT = Convert.ToString(row["BALAMT"]);
+                                RECAMT = Convert.ToString(row["RECAMT"]);
+                                DUEAMT = Convert.ToString(row["DUEAMT"]);
+
+                                <tr style="outline: thin solid">
+                                    <td align="center" colspan="2">
+                                        @REGNID
+                                    </td>
+                                    <td align="left" colspan="4">
+                                        @GUESTNM
+                                    </td>
+                                    <td align="center" colspan="2">
+                                        @ROOMNO
+                                    </td>
+                                    <td align="right" colspan="3">
+                                        @NETAMT
+                                    </td>
+                                    <td align="right" colspan="3">
+                                        @PAIDAMT
+                                    </td>
+                                    <td align="right" colspan="2">
+                                        @BALAMT
+                                    </td>
+                                    <td align="right" colspan="2">
+                                        @RECAMT
+                                    </td>
+                                    <td align="right" colspan="2">
+                                        @DUEAMT
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        conn.Close();
+                    }
+                    conn1.Close();
+                }
+                @*<tr>
+                        <td colspan="2"></td>
+                        <td colspan="2"></td>
+                        <td colspan="1"></td>
+                        <td align="right" colspan="3" style="font-weight:bold">
+                            Total:
+                        </td>
+                        <td align="right" colspan="2" style="font-weight:bold">
+                            @total_BQTY
+                        </td>
+                        <td align="right" colspan="2" style="font-weight:bold">
+                            @total_SQTY
+                        </td>
+                        <td align="right" colspan="2" style="font-weight:bold">
+                            @total_INQTY
+                        </td>
+                        <td align="right" colspan="2" style="font-weight:bold">
+                            @total_OUTQTY
+                        </td>
+                        <td align="right" colspan="2" style="font-weight:bold">
+                            @{
+                                total_Balance = Opening + total_BQTY - total_SQTY + total_INQTY - total_OUTQTY;
+                            }
+                            @total_Balance
+                        </td>
+                    </tr>*@
+
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>

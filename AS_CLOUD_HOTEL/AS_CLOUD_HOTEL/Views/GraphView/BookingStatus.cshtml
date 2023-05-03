@@ -1,0 +1,330 @@
+﻿@using AS_CLOUD_HOTEL.Models
+@{
+    ViewBag.Title = "BookingStatus";
+
+    //var userCookie = Request.Cookies["user"];
+    //if (userCookie == null)
+    //{
+    //    Response.Redirect(Url.Action("Index", "Login"));
+    //}
+
+    if (System.Web.HttpContext.Current.Session["loggedCompID"] == null)
+    {
+        Response.Redirect(Url.Action("Index", "Login"));
+    }
+
+
+    CLoudHotelDbContext db = new CLoudHotelDbContext();
+    Int64 companyID = Convert.ToInt64(HttpContext.Current.Session["loggedCompID"].ToString());
+}
+@*<link href="~/Content/fullcalendar/css/bootstrap.css" rel="stylesheet" />*@
+<link href="~/Content/fullcalendar/css/fullcalendar.css" rel="stylesheet" />
+<link href="~/Content/fullcalendar/css/Site.css" rel="stylesheet" />
+
+@using (Html.BeginForm())
+{
+    var findCleaningStatus = (from m in db.HmlRoomStatusDbSet where m.COMPID == companyID select m).ToList();
+
+    if (System.Web.HttpContext.Current.Session["LoggedUserType"] != null && System.Web.HttpContext.Current.Session["LoggedUserStatus"].ToString() == "A" && (System.Web.HttpContext.Current.Session["LoggedUserType"].ToString() == "CompanyAdmin" || System.Web.HttpContext.Current.Session["LoggedUserType"].ToString() == "UserAdmin" || System.Web.HttpContext.Current.Session["LoggedUserType"].ToString() == "User"))
+    {
+        <div id="contentHeaderBox" style="border-bottom: none;height: auto">
+            <ul class="nav nav-tabs" role="tablist">
+                <li>@Html.ActionLink("Room Status", "Index", "GraphView", new { style = "color: black;" })</li>
+                <li class="active">@Html.ActionLink("Booking Status", "BookingStatus", "GraphView", new { style = "color: black;background-color: gainsboro;" })</li>
+                <li>@Html.ActionLink("Cleaning Status", "CleaningStatus", "GraphView", new { style = "color: black;" })</li>
+                <li>@Html.ActionLink("Today", "Today", "GraphView", new { style = "color: black" })</li>
+                @if (System.Web.HttpContext.Current.Session["LoggedUserType"].ToString() != "User")
+                {
+
+                    <li>@Html.ActionLink("Yesterday", "LastOneDay", "GraphView", new { style = "color: black" })</li>
+                    <li>@Html.ActionLink("Last 7 Day", "Last7Day", "GraphView", new { style = "color: black" })</li>
+                    <li>@Html.ActionLink("Last 1 Month", "LastOneMonth", "GraphView", new { style = "color: black" })</li>
+                    <li>@Html.ActionLink("Last 1 Year", "LastOneYear", "GraphView", new { style = "color: black" })</li>
+                }
+
+            </ul>
+        </div>
+        <br>
+        <div class="panel panel-primary">
+            <!-- Default panel contents -->
+            <div class="panel-heading">BOOKING STATUS </div>
+            <div class="container">
+
+                @*<div>
+                    <a href="#" id="btnInit" class="btn btn-secondary">Initialise database!</a>
+                </div>*@
+
+                <div id='calendar' style="width:65%"></div>
+
+            </div>
+
+
+            <div id="popupEventForm" class="modal" style="display: none;    height: 290px;">
+                <div class="modal-header" Style="text-align: center;"><h3>Booking Information</h3></div>
+                <div class="modal-body">
+                    <form id="EventForm" class="well">
+                        <input type="hidden" id="eventID">
+                        <div class="row">
+                            <div class="col-md-2">Title</div>
+                            <div class="col-md-10"><label id="eventTitle" placeholder="Title here" readonly="readonly" style="width: 100%"></label>
+                            </div>
+                        </div>
+                        <br/>
+                        <div class="row">
+                            <div class="col-md-2">Check In</div>
+                            <div class="col-md-3">
+                                <label readonly="readonly" id="checkInDate" style="width: 100%"></label>
+                            </div>
+                            <div class="col-md-3">Check Out</div>
+                            <div class="col-md-4">
+                                <label readonly="readonly" id="checkOutDate" style="width: 100%"></label>
+                            </div>
+                        </div>
+                        <br/>
+                        <div class="row">
+                            <div class="col-md-2">Adult</div>
+                            <div class="col-md-3">
+                                <label readonly="readonly" id="adultPerson" style="width: 100%"></label>
+                            </div>
+                            <div class="col-md-3">Child</div>
+                            <div class="col-md-4">
+                                <label readonly="readonly" id="childPerson" style="width: 100%"></label>
+                            </div>
+                        </div>
+                        <br/>
+                        <div class="row">
+                            <div class="col-md-2">Room</div>
+                            <div class="col-md-10">
+                                <label id="roomInformation" style="width: 100%"></label>
+                            </div>
+                        </div>
+                        <br />
+                        <div class="row">
+                            <div class="col-md-12"><button type="button" id="btnPopupCancel" data-dismiss="modal" class="btn btn-danger">Cancel</button></div>
+                        </div>
+                        <br />
+                        @*<input type="hidden" id="eventID">
+                        <label>Title</label>
+                        <input id="eventTitle" placeholder="Title here" readonly="readonly"><br />
+                        <label>Check In date</label>
+                        <input readonly="readonly" id="checkInDate"><br />
+                        <label>Check Out date</label>
+                        <input readonly="readonly" id="checkOutDate"><br />*@
+                        @*<label>Appointment length (minutes)</label>
+                        <input type="text" id="eventDuration" placeholder="15"><br />*@
+                    </form>
+                </div>
+                @*<div class="modal-footer">
+                    <button type="button" id="btnPopupCancel" data-dismiss="modal" class="btn">Cancel</button>
+                </div>*@
+            </div>
+        </div>
+
+    }
+
+}
+
+
+@{
+
+
+    <script>
+        $(document).ready(function () {
+
+            var sourceFullView = { url: '/BookingStatus/GetDiaryEvents/' };
+            var sourceSummaryView = { url: '/BookingStatus/GetDiarySummary/' };
+            var CalLoading = true;
+
+            $('#calendar').fullCalendar({
+                header: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'month'
+                },
+                defaultView: 'month',
+                editable: false,
+                allDaySlot: false,
+                selectable: true,
+                slotMinutes: 15,
+                events: '/BookingStatus/GetDiaryEvents/',
+                eventClick: function (calEvent, jsEvent, view) {
+                    //alert('You clicked on event id: ' + calEvent.id
+                    //    + "\nSpecial ID: " + calEvent.someKey
+                    //    + "\nAnd the title is: " + calEvent.title);
+                    if (calEvent.mobileNo != null) {
+                        $('#eventTitle').text(calEvent.CPerson +"  -"+ calEvent.mobileNo);
+                    } else {
+                        $('#eventTitle').text(calEvent.CPerson);
+                    }
+                    
+                    $('#checkInDate').text(calEvent.Checkin);
+                    $('#checkOutDate').text(calEvent.CheckOut);
+                    $('#adultPerson').text(calEvent.adultPerson);
+                    $('#childPerson').text(calEvent.childPerson);
+                    $('#roomInformation').text(calEvent.roominformation);
+                    //$('#eventDate').val($.fullCalendar.formatDate(date, 'dd/MM/yyyy'));
+                    //$('#eventTime').val($.fullCalendar.formatDate(date, 'HH:mm'));
+                    ShowEventPopup(calEvent);
+
+                },
+
+                //eventDrop: function (event, dayDelta, minuteDelta, allDay, revertFunc) {
+                //    if (confirm("Confirm move?")) {
+                //        UpdateEvent(event.id, event.start);
+                //    }
+                //    else {
+                //        revertFunc();
+                //    }
+                //},
+
+                //eventResize: function (event, dayDelta, minuteDelta, revertFunc) {
+
+                //    if (confirm("Confirm change appointment length?")) {
+                //        UpdateEvent(event.id, event.start, event.end);
+                //    }
+                //    else {
+                //        revertFunc();
+                //    }
+                //},
+
+
+
+                //dayClick: function (date, allDay, jsEvent, view) {
+                //    $('#eventTitle').val("");
+                //    $('#checkInDate').val("");
+                //    $('#checkOutDate').val("");
+                //    $('#adultPerson').val("");
+                //    $('#childPerson').val("");
+                //    $('#roomInformation').val("");
+                //    //$('#eventDate').val($.fullCalendar.formatDate(date, 'dd/MM/yyyy'));
+                //    //$('#eventTime').val($.fullCalendar.formatDate(date, 'HH:mm'));
+                //    ShowEventPopup(date);
+             
+                //},
+
+                viewRender: function (view, element) {
+
+                    if (!CalLoading) {
+                        if (view.name == 'month') {
+                            $.ajax({
+                                type: 'GET',
+                                url: "/BookingStatus/GetDiaryEvents",
+                            });
+                            //$('#calendar').fullCalendar('removeEventSource', sourceFullView);
+                            //$('#calendar').fullCalendar('removeEvents');
+                            //$('#calendar').fullCalendar('addEventSource', sourceSummaryView);
+                        }
+                        //else {
+                        //    $('#calendar').fullCalendar('removeEventSource', sourceSummaryView);
+                        //    $('#calendar').fullCalendar('removeEvents');
+                        //    $('#calendar').fullCalendar('addEventSource', sourceFullView);
+                        //}
+                    }
+                }
+
+            });
+
+            CalLoading = false;
+
+
+        });
+
+        //$('#btnInit').click(function () {
+        //    $.ajax({
+        //        type: 'POST',
+        //        url: "/BookingStatus/Init",
+        //        success: function (response) {
+        //            if (response == 'True') {
+        //                $('#calendar').fullCalendar('refetchEvents');
+        //                alert('Database populated! ');
+        //            }
+        //            else {
+        //                alert('Error, could not populate database!');
+        //            }
+        //        }
+        //    });
+        //});
+
+        $('#btnPopupCancel').click(function () {
+            ClearPopupFormValues();
+            $('#popupEventForm').hide();
+        });
+
+        //$('#btnPopupSave').click(function () {
+
+        //    $('#popupEventForm').hide();
+
+        //    var dataRow = {
+        //        'Title': $('#eventTitle').val(),
+        //        'NewEventDate': $('#eventDate').val(),
+        //        'NewEventTime': $('#eventTime').val(),
+        //        'NewEventDuration': $('#eventDuration').val()
+        //    }
+
+        //    ClearPopupFormValues();
+
+        //    $.ajax({
+        //        type: 'POST',
+        //        url: "/BookingStatus/SaveEvent",
+        //        data: dataRow,
+        //        success: function (response) {
+        //            if (response == 'True') {
+        //                $('#calendar').fullCalendar('refetchEvents');
+        //                alert('New event saved!');
+        //            }
+        //            else {
+        //                alert('Error, could not save event!');
+        //            }
+        //        }
+        //    });
+        //});
+
+        function ShowEventPopup(date) {
+            //ClearPopupFormValues();
+            $('#popupEventForm').show();
+            $('#eventTitle').focus();
+        }
+
+        function ClearPopupFormValues() {
+            $('#eventID').val("");
+            $('#eventTitle').val("");
+            $('#eventDateTime').val("");
+            $('#eventDuration').val("");
+        }
+
+        //function UpdateEvent(EventID, EventStart, EventEnd) {
+
+        //    var dataRow = {
+        //        'ID': EventID,
+        //        'NewEventStart': EventStart,
+        //        'NewEventEnd': EventEnd
+        //    }
+
+        //    $.ajax({
+        //        type: 'POST',
+        //        url: "/BookingStatus/UpdateEvent",
+        //        dataType: "json",
+        //        contentType: "application/json",
+        //        data: JSON.stringify(dataRow)
+        //    });
+        //}
+
+    </script>
+
+
+}
+
+
+<script src="~/Content/fullcalendar/Script/bootstrap-modal.js"></script>
+@*<script src="~/Content/fullcalendar/Script/bootstrap.js"></script>*@
+<script src="~/Content/fullcalendar/Script/fullcalendar.js"></script>
+@*<script src="~/Content/fullcalendar/Script/jquery-1.8.2.js"></script>*@
+<script src="~/Content/fullcalendar/Script/jquery-ui-1.8.24.js"></script>
+<script src="~/Content/fullcalendar/Script/modernizr-2.6.2.js"></script>
+
+
+
+
+
+
+
